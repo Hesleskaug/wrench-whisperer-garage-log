@@ -79,22 +79,71 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     return storedLogs ? JSON.parse(storedLogs) : [];
   };
 
-  // Set the current garage ID in Supabase for RLS
+  // Set the current garage ID in Supabase for RLS with proper error handling
   const setCurrentGarageId = async (garageId: string) => {
     try {
+      console.log('Setting current garage ID to:', garageId);
       const { error } = await supabase.rpc('set_current_garage_id', { garage_id: garageId });
+      
       if (error) {
         console.error('Error setting current garage ID:', error);
         throw error;
       }
+      
       console.log('Successfully set current garage ID for RLS');
+      return true;
     } catch (error) {
       console.error('Exception setting current garage ID:', error);
       throw error;
     }
   };
 
-  // Function to save vehicles to Supabase with better RLS handling
+  // Function to delete existing vehicles for a garage with proper RLS context
+  const deleteExistingVehicles = async (garageId: string) => {
+    try {
+      // Set the RLS context first
+      await setCurrentGarageId(garageId);
+      
+      const { error } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('garage_id', garageId);
+      
+      if (error) {
+        console.error('Error deleting existing vehicles:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Exception during vehicle delete:', error);
+      return false;
+    }
+  };
+
+  // Function to insert vehicles in batches with proper RLS context
+  const insertVehicleBatch = async (vehicles: any[], garageId: string) => {
+    try {
+      // Set the RLS context first
+      await setCurrentGarageId(garageId);
+      
+      const { error } = await supabase
+        .from('vehicles')
+        .insert(vehicles);
+      
+      if (error) {
+        console.error('Error inserting vehicles batch:', error);
+        throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Exception during vehicle batch insert:', error);
+      throw error;
+    }
+  };
+
+  // Function to save vehicles to Supabase with improved RLS handling
   const syncVehicles = async (vehicles: Vehicle[]) => {
     if (!garageId) {
       console.error('No garage ID available');
@@ -106,9 +155,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     console.log('Vehicles saved to localStorage:', vehicles);
     
     try {
-      // Set the current garage ID for RLS
-      await setCurrentGarageId(garageId);
-      
       // Format vehicles for Supabase insert
       const vehiclesToInsert = vehicles.map(vehicle => ({
         id: vehicle.id && vehicle.id.includes('-') ? vehicle.id : uuidv4(),
@@ -125,21 +171,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       }));
       
       // Try to delete existing vehicles for this garage first
-      try {
-        await setCurrentGarageId(garageId); // Set again to ensure it's set for this operation
-        const { error: deleteError } = await supabase
-          .from('vehicles')
-          .delete()
-          .eq('garage_id', garageId);
-          
-        if (deleteError) {
-          console.error('Error deleting existing vehicles:', deleteError);
-          // Continue with insert attempt regardless
-        }
-      } catch (deleteErr) {
-        console.error('Exception during vehicle delete:', deleteErr);
-        // Continue with insert attempt
-      }
+      await deleteExistingVehicles(garageId);
       
       // Insert in batches to avoid payload size issues
       if (vehicles.length > 0) {
@@ -148,22 +180,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         
         for (let i = 0; i < vehiclesToInsert.length; i += batchSize) {
           const batch = vehiclesToInsert.slice(i, i + batchSize);
-          try {
-            await setCurrentGarageId(garageId); // Set again to ensure it's set for this batch
-            const { error: insertError } = await supabase
-              .from('vehicles')
-              .insert(batch);
-              
-            if (insertError) {
-              console.error('Error syncing vehicles batch to Supabase:', insertError);
-              throw insertError;
-            } else {
-              syncSuccessful = true;
-            }
-          } catch (insertErr) {
-            console.error('Exception during vehicle insert:', insertErr);
-            throw insertErr;
-          }
+          await insertVehicleBatch(batch, garageId);
+          syncSuccessful = true;
         }
         
         if (syncSuccessful) {

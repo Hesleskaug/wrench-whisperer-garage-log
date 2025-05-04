@@ -49,7 +49,9 @@ export const useGarageData = () => {
             
             // Try to sync localStorage vehicles to Supabase
             setIsSyncing(true);
-            syncVehicles(localVehicles).catch(error => {
+            syncVehicles(localVehicles).then(() => {
+              toast.success('Vehicles synced to cloud successfully');
+            }).catch(error => {
               console.error('Failed to sync localStorage vehicles to Supabase:', error);
               // Show a more specific error about device syncing
               toast.error('Could not sync vehicles to cloud. Your data is saved locally but may not appear on other devices.');
@@ -67,7 +69,9 @@ export const useGarageData = () => {
             
             // Try to sync default vehicles to Supabase
             setIsSyncing(true);
-            syncVehicles(defaultMockVehicles).catch(error => {
+            syncVehicles(defaultMockVehicles).then(() => {
+              toast.success('Mock vehicles synced to cloud successfully');
+            }).catch(error => {
               console.error('Failed to sync mock vehicles to Supabase:', error);
               toast.error('Could not sync vehicles to cloud. Your data is saved locally but may not appear on other devices.');
             }).finally(() => {
