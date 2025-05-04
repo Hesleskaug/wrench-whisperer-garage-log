@@ -158,12 +158,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Fix the TypeScript error by using explicit type casting
+      // Define the update data with correct types
+      type ProfileUpdate = {
+        username: string | null;
+      };
+
+      const updates: ProfileUpdate = {
+        username: data.username || null
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({ 
-          username: data.username || null 
-        } as { username: string | null })
+        .update(updates)
         .eq('id', state.user.id);
       
       if (error) throw error;
