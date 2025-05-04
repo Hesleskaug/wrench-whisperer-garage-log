@@ -61,6 +61,14 @@ const VehicleDetails = () => {
     setServiceLogs(vehicleLogs);
     
     if (foundVehicle) {
+      // Find vehicle specs (still using mock data for now)
+      const vehicleSpecs = mockVehicleSpecs.find(s => s.vehicleId === id);
+      
+      // Attach specs to vehicle if found
+      if (vehicleSpecs) {
+        foundVehicle.specs = vehicleSpecs;
+      }
+      
       setVehicle(foundVehicle);
 
       // Check for additional vehicle details that might be saved
@@ -69,8 +77,7 @@ const VehicleDetails = () => {
         setVehicleDetails(JSON.parse(storedVehicleDetails));
       }
       
-      // Find vehicle specs (still using mock data for now)
-      const vehicleSpecs = mockVehicleSpecs.find(s => s.vehicleId === id);
+      // Look for specs in existing data
       setSpecs(vehicleSpecs);
       
       // Simulate finding "community" specs based on make and model
@@ -147,6 +154,11 @@ const VehicleDetails = () => {
       v.id === updatedVehicle.id ? updatedVehicle : v
     );
     localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
+    
+    // If specs were updated, refresh the specs state to show updated data
+    if (updatedVehicle.specs) {
+      setSpecs(updatedVehicle.specs);
+    }
   };
 
   const handleDeleteVehicle = () => {

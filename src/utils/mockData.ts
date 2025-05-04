@@ -1,4 +1,3 @@
-
 export interface Vehicle {
   id: string;
   make: string;
@@ -8,6 +7,7 @@ export interface Vehicle {
   plate?: string;
   mileage: number;
   image?: string;
+  specs?: VehicleSpecs; // Add specs directly to the vehicle
 }
 
 export interface ReceiptInfo {
