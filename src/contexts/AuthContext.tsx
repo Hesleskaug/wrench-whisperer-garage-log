@@ -149,9 +149,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Fix TypeScript error by ensuring data shape matches UserProfile type
+      const { id, created_at, updated_at, ...updateData } = data;
+      
       const { error } = await supabase
         .from('profiles')
-        .update(data)
+        .update(updateData)
         .eq('id', state.user.id);
       
       if (error) throw error;
