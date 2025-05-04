@@ -26,7 +26,7 @@ const VehicleCard = ({ vehicle, onServiceLog, needsSave = false }: VehicleCardPr
       <div className="h-36 bg-gray-200 flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl font-bold">{vehicle.make} {vehicle.model}</p>
-          <p className="text-sm text-gray-600">{vehicle.year} · {vehicle.licensePlate}</p>
+          <p className="text-sm text-gray-600">{vehicle.year} · {vehicle.plate}</p>
         </div>
       </div>
       
