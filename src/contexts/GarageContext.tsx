@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,7 +10,7 @@ interface GarageContextType {
   createGarage: () => void;
   accessGarage: (id: string) => void;
   leaveGarage: () => void;
-  syncVehicles: (vehicles: Vehicle[]) => Promise<void>;
+  syncVehicles: (vehicles: Vehicle[]) => Promise<any[]>; // Updated return type from Promise<void> to Promise<any[]>
   fetchVehicles: () => Promise<Vehicle[]>;
   syncServiceLogs: (serviceLogs: ServiceLog[]) => void;
   fetchServiceLogs: () => ServiceLog[];
