@@ -28,21 +28,34 @@ serve(async (req) => {
     
     console.log(`Looking up vehicle with plate: ${cleanPlate}`);
     
+    // Get API key from environment
+    const apiKey = Deno.env.get("SVV_API_KEY");
+    if (!apiKey) {
+      console.error("SVV_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "API configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Call Statens vegvesen API
     const apiUrl = `https://www.vegvesen.no/ws/no/vegvesen/kjoretoy/felles/datautlevering/enkeltoppslag/kjoretoydata?kjennemerke=${encodeURIComponent(cleanPlate)}`;
+    
+    console.log(`Calling Vegvesen API at: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
-        "SVV-Authorization": "Apikey " + Deno.env.get("SVV_API_KEY"),
+        "SVV-Authorization": "Apikey " + apiKey,
         "Accept": "application/json"
       }
     });
     
+    console.log(`API response status: ${response.status} ${response.statusText}`);
+    
     if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`);
       const errorText = await response.text();
-      console.error(`Error details: ${errorText}`);
+      console.error(`API error details: ${errorText}`);
       
       if (response.status === 404) {
         return new Response(
@@ -58,6 +71,7 @@ serve(async (req) => {
     }
     
     const vehicleData = await response.json();
+    console.log("Vehicle data retrieved successfully");
     
     // Transform the API response to match our app's data structure
     const transformedData = {
