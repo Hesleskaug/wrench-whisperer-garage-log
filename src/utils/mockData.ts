@@ -1,4 +1,3 @@
-
 export interface Vehicle {
   id: string;
   make: string;
@@ -108,7 +107,13 @@ export const mockServiceLogs: ServiceLog[] = [
       { 
         id: '1-4', 
         description: 'Install new oil filter (pre-fill with oil and lubricate gasket)', 
-        completed: true 
+        completed: true,
+        receipt: {
+          store: 'Auto Parts Store',
+          invoiceNumber: 'INV-56789',
+          date: '2023-11-14',
+          amount: 150
+        }
       },
       { 
         id: '1-5', 
@@ -120,7 +125,13 @@ export const mockServiceLogs: ServiceLog[] = [
       { 
         id: '1-6', 
         description: 'Fill with 5L of new oil', 
-        completed: true 
+        completed: true,
+        receipt: {
+          store: 'Auto Parts Store',
+          invoiceNumber: 'INV-56789',
+          date: '2023-11-14',
+          amount: 899
+        }
       },
       { 
         id: '1-7', 

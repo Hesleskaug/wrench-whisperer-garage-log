@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon, PlusCircle, X, Wrench } from "lucide-react";
+import { CalendarIcon, PlusCircle, X, Wrench, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -63,8 +62,13 @@ const ServiceLogForm = ({
     tools: "",
     torqueSpec: "",
     notes: "",
+    receiptStore: "",
+    receiptInvoice: "",
+    receiptDate: "",
+    receiptAmount: "",
   });
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showReceiptFields, setShowReceiptFields] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,12 +97,26 @@ const ServiceLogForm = ({
       toolsRequired: currentTask.tools ? currentTask.tools.split(',').map(tool => tool.trim()) : undefined
     };
 
+    // Add receipt information if a store is provided
+    if (currentTask.receiptStore.trim()) {
+      newTask.receipt = {
+        store: currentTask.receiptStore.trim(),
+        invoiceNumber: currentTask.receiptInvoice.trim() || undefined,
+        date: currentTask.receiptDate.trim() || undefined,
+        amount: currentTask.receiptAmount ? Number(currentTask.receiptAmount) : undefined
+      };
+    }
+
     setTasks(prev => [...prev, newTask]);
     setCurrentTask({
       description: "",
       tools: "",
       torqueSpec: "",
       notes: "",
+      receiptStore: "",
+      receiptInvoice: "",
+      receiptDate: "",
+      receiptAmount: "",
     });
     toast.success("Task added");
   };
@@ -347,6 +365,64 @@ const ServiceLogForm = ({
                         />
                       </div>
                     </div>
+
+                    <div className="pt-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowReceiptFields(!showReceiptFields)}
+                        className="flex items-center gap-1 mb-3"
+                      >
+                        <Receipt size={14} />
+                        {showReceiptFields ? "Hide Receipt Details" : "Add Purchase Receipt"}
+                      </Button>
+
+                      {showReceiptFields && (
+                        <div className="space-y-3 border-t pt-3">
+                          <div>
+                            <label className="text-sm font-medium">Store/Vendor*</label>
+                            <Input 
+                              placeholder="e.g. AutoZone, Amazon"
+                              className="mt-1"
+                              value={currentTask.receiptStore}
+                              onChange={(e) => setCurrentTask(prev => ({ ...prev, receiptStore: e.target.value }))}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-sm font-medium">Invoice/Order #</label>
+                              <Input 
+                                placeholder="Optional"
+                                className="mt-1"
+                                value={currentTask.receiptInvoice}
+                                onChange={(e) => setCurrentTask(prev => ({ ...prev, receiptInvoice: e.target.value }))}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Purchase Date</label>
+                              <Input 
+                                placeholder="YYYY-MM-DD (Optional)"
+                                className="mt-1"
+                                value={currentTask.receiptDate}
+                                onChange={(e) => setCurrentTask(prev => ({ ...prev, receiptDate: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Amount (kr)</label>
+                            <Input 
+                              type="number"
+                              placeholder="Optional"
+                              className="mt-1"
+                              value={currentTask.receiptAmount}
+                              onChange={(e) => setCurrentTask(prev => ({ ...prev, receiptAmount: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex justify-end">
                       <Button 
                         type="button" 

@@ -14,7 +14,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Wrench, AlertCircle, HelpCircle } from "lucide-react";
+import { CheckCircle2, Wrench, AlertCircle, HelpCircle, Receipt } from "lucide-react";
 
 interface ServiceTaskListProps {
   tasks?: ServiceTask[];
@@ -59,6 +59,36 @@ const ServiceTaskList = ({ tasks }: ServiceTaskListProps) => {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Torque Specification</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    
+                    {task.receipt && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="border-green-500 text-green-700 flex items-center gap-1">
+                              <Receipt size={12} />
+                              {task.receipt.store}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent className="w-60 p-2">
+                            <div className="space-y-1">
+                              <p className="font-medium">Purchase Details</p>
+                              <div className="text-xs">
+                                <p>Store: {task.receipt.store}</p>
+                                {task.receipt.invoiceNumber && (
+                                  <p>Invoice: {task.receipt.invoiceNumber}</p>
+                                )}
+                                {task.receipt.date && (
+                                  <p>Date: {task.receipt.date}</p>
+                                )}
+                                {task.receipt.amount && (
+                                  <p>Amount: {task.receipt.amount} kr</p>
+                                )}
+                              </div>
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
