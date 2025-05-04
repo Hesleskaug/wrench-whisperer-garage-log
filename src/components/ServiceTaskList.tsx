@@ -14,7 +14,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Wrench, Tool, AlertCircle, HelpCircle } from "lucide-react";
+import { CheckCircle2, Wrench, AlertCircle, HelpCircle } from "lucide-react";
 
 interface ServiceTaskListProps {
   tasks?: ServiceTask[];
@@ -34,7 +34,7 @@ const ServiceTaskList = ({ tasks }: ServiceTaskListProps) => {
       <AccordionItem value="tasks">
         <AccordionTrigger className="text-mechanic-blue hover:text-mechanic-blue/90">
           <div className="flex items-center gap-2">
-            <Tool size={16} />
+            <Wrench size={16} />
             <span>Service Procedure ({tasks.length} steps)</span>
           </div>
         </AccordionTrigger>

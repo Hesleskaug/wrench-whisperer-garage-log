@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon, PlusCircle, X, Tool } from "lucide-react";
+import { CalendarIcon, PlusCircle, X, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -293,7 +293,7 @@ const ServiceLogForm = ({
               <div className="border rounded-lg p-4">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
-                    <Tool size={18} />
+                    <Wrench size={18} />
                     <h3 className="font-medium">Service Tasks</h3>
                   </div>
                   <Button 
