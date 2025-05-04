@@ -31,6 +31,8 @@ export interface ServiceTask {
   torqueSpec?: string;
   receipt?: ReceiptInfo;
   images?: string[];
+  difficulty?: string; // Add difficulty property
+  estimatedTime?: number; // Add estimatedTime property
 }
 
 export interface ServiceLog {
