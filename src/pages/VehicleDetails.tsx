@@ -54,11 +54,15 @@ const VehicleDetails = () => {
       // In a real app, this would come from a database of community-contributed specs
       if (foundVehicle) {
         // Look for other mock specs with same make/model but different vehicle ID
-        const similarVehicleSpecs = mockVehicleSpecs.find(s => 
-          s.vehicleId !== id && 
-          mockVehicleSpecs.find(vs => vs.vehicleId === s.vehicleId)?.make === foundVehicle.make &&
-          mockVehicleSpecs.find(vs => vs.vehicleId === s.vehicleId)?.model === foundVehicle.model
-        );
+        const similarVehicleSpecs = mockVehicleSpecs.find(s => {
+          // Get the vehicle associated with this spec
+          const specVehicle = vehicles.find((v: Vehicle) => v.id === s.vehicleId);
+          // Check if it's a different vehicle with the same make/model
+          return specVehicle && 
+                 s.vehicleId !== id && 
+                 specVehicle.make === foundVehicle.make &&
+                 specVehicle.model === foundVehicle.model;
+        });
         
         // If we don't have specific specs for this vehicle but found community specs
         if (!vehicleSpecs && similarVehicleSpecs) {

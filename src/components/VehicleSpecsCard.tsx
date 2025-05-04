@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VehicleSpecs } from "@/utils/mockData";
 import { Wrench, Info, Users } from "lucide-react";
@@ -172,7 +171,7 @@ const VehicleSpecsCard = ({ specs, isCommunityData = false }: VehicleSpecsCardPr
       </CardHeader>
       <CardContent>
         {isCommunityData && (
-          <Alert variant="warning" className="mb-4 bg-amber-50">
+          <Alert className="mb-4 bg-amber-50">
             <AlertDescription className="text-xs">
               <strong>Community Information:</strong> These specifications are shared by other users with the same make and model. 
               Always verify with your vehicle's manual or a professional mechanic before performing maintenance.
