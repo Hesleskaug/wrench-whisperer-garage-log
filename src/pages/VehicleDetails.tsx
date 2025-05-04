@@ -20,10 +20,18 @@ import TaskImageUploader from "@/components/TaskImageUploader";
 const getGenericVehicleImage = (vehicle: Vehicle): string => {
   const type = vehicle.bodyType?.toLowerCase() || '';
   const make = vehicle.make?.toLowerCase() || '';
+  const model = vehicle.model?.toLowerCase() || '';
 
-  // Return image based on body type or make
+  // First check for specific vehicle models
+  if (make.includes('toyota') && model.includes('rav4')) {
+    return "https://images.unsplash.com/photo-1551830820-330a71b99659?q=80&w=1470&auto=format&fit=crop";
+  } else if (make.includes('volvo') && model.includes('v70')) {
+    return "https://images.unsplash.com/photo-1553440569-bcc63803a83d?q=80&w=1470&auto=format&fit=crop";
+  }
+
+  // Then fall back to body type
   if (type.includes('suv') || make.includes('suv')) {
-    return "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=1470&auto=format&fit=crop";
+    return "https://images.unsplash.com/photo-1600861194942-f883de0dfe96?q=80&w=1470&auto=format&fit=crop";
   } else if (type.includes('sedan') || type.includes('saloon')) {
     return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?q=80&w=1470&auto=format&fit=crop";
   } else if (type.includes('hatch') || type.includes('compact')) {
@@ -34,12 +42,14 @@ const getGenericVehicleImage = (vehicle: Vehicle): string => {
     return "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=1470&auto=format&fit=crop";
   } else if (type.includes('convertible') || type.includes('cabrio')) {
     return "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1470&auto=format&fit=crop";
+  } else if (type.includes('station') || type.includes('wagon') || type.includes('estate')) {
+    return "https://images.unsplash.com/photo-1553440569-bcc63803a83d?q=80&w=1470&auto=format&fit=crop";
   } else if (type.includes('minivan') || type.includes('mpv')) {
     return "https://images.unsplash.com/photo-1543465077-db45d34b88a5?q=80&w=1470&auto=format&fit=crop";
-  } else {
-    // Default image if no specific type is detected
-    return "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1470&auto=format&fit=crop";
   }
+
+  // Default image if no specific type is detected
+  return "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1470&auto=format&fit=crop";
 };
 
 const VehicleDetails = () => {
