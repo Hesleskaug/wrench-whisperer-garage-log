@@ -34,6 +34,12 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // Utility function to validate UUID format
+  const isValidUUID = (uuid: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   // Use this effect to update RLS context whenever garage ID changes
   useEffect(() => {
     const updateRlsContext = async () => {
@@ -41,6 +47,12 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       
       try {
         console.log('Setting RLS context for garage ID:', garageId);
+        // Make sure we're setting a valid UUID format
+        if (!isValidUUID(garageId)) {
+          console.error('Invalid garage ID format for RLS context:', garageId);
+          return;
+        }
+
         const { error } = await supabase.rpc('set_current_garage_id', { 
           garage_id: garageId 
         });
@@ -67,7 +79,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const accessGarage = (id: string) => {
     // Basic validation for UUID format
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    if (!isValidUUID(id)) {
       toast.error('Invalid garage ID format');
       return;
     }
@@ -110,14 +122,21 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       return Promise.reject(new Error('No garage ID available'));
     }
 
+    if (!isValidUUID(garageId)) {
+      console.error('Invalid garage ID format:', garageId);
+      return Promise.reject(new Error('Invalid garage ID format'));
+    }
+
     try {
-      // Make sure we set the RLS context before any operations
+      // First ensure the RLS context is set immediately before operations
       console.log('Setting current garage ID before saving vehicle:', garageId);
       await supabase.rpc('set_current_garage_id', { garage_id: garageId });
       
       // Prepare vehicle data for insert/update
+      const vehicleId = vehicle.id && isValidUUID(vehicle.id) ? vehicle.id : uuidv4();
+      
       const vehicleData = {
-        id: vehicle.id && vehicle.id.includes('-') ? vehicle.id : uuidv4(),
+        id: vehicleId,
         make: vehicle.make,
         model: vehicle.model,
         year: vehicle.year,
@@ -155,6 +174,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const fetchVehicles = async (): Promise<Vehicle[]> => {
     if (!garageId) {
       console.error('No garage ID available');
+      return Promise.resolve([]);
+    }
+
+    if (!isValidUUID(garageId)) {
+      console.error('Invalid garage ID format:', garageId);
       return Promise.resolve([]);
     }
 

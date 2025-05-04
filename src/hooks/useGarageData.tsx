@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Vehicle, ServiceLog, mockVehicles as defaultMockVehicles, mockServiceLogs as defaultMockServiceLogs } from "@/utils/mockData";
 import { useGarage } from '@/contexts/GarageContext';
 import { toast } from "sonner";
+import { v4 as uuidv4 } from 'uuid';
 
 export const useGarageData = () => {
   const { garageId, saveVehicle, fetchVehicles, syncServiceLogs, fetchServiceLogs } = useGarage();
@@ -12,6 +13,12 @@ export const useGarageData = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSyncAttempt, setLastSyncAttempt] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Utility function to validate UUID format
+  const isValidUUID = (uuid: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
 
   // Load vehicles and service logs when garage ID changes
   useEffect(() => {
@@ -31,13 +38,20 @@ export const useGarageData = () => {
         } else {
           // If no vehicles, use mock data for first-time users
           console.log('No vehicles found, using default mock vehicles');
-          setVehicles(defaultMockVehicles);
+          
+          // Ensure all mock vehicles have valid UUIDs
+          const mockVehiclesWithValidIds = defaultMockVehicles.map(vehicle => ({
+            ...vehicle,
+            id: isValidUUID(vehicle.id) ? vehicle.id : uuidv4()
+          }));
+          
+          setVehicles(mockVehiclesWithValidIds);
           
           // Try to save mock vehicles to database one by one for first-time setup
           console.log('Saving mock vehicles to database');
           let savingErrors = 0;
           
-          for (const vehicle of defaultMockVehicles) {
+          for (const vehicle of mockVehiclesWithValidIds) {
             try {
               await saveVehicle(vehicle);
             } catch (error) {
@@ -91,16 +105,22 @@ export const useGarageData = () => {
       return;
     }
     
+    // Ensure the vehicle has a valid UUID
+    const vehicleWithValidId = {
+      ...vehicle,
+      id: isValidUUID(vehicle.id || '') ? vehicle.id : uuidv4()
+    };
+    
     setIsSaving(true);
     setSyncError(null);
     
     try {
-      console.log('Saving vehicle to database:', vehicle);
+      console.log('Saving vehicle to database:', vehicleWithValidId);
       // Save directly to the database
-      await saveVehicle(vehicle);
+      await saveVehicle(vehicleWithValidId);
       
       // Update our local state
-      setVehicles(prev => [...prev, vehicle]);
+      setVehicles(prev => [...prev, vehicleWithValidId]);
       
       toast.success('Vehicle saved successfully');
       setLastSyncAttempt(new Date());
@@ -192,17 +212,27 @@ export const useGarageData = () => {
     
     let successCount = 0;
     let errorCount = 0;
+    let errorMessages: string[] = [];
     
     try {
       console.log('Saving all vehicles to database');
       // Save each vehicle one by one
       for (const vehicle of vehicles) {
         try {
-          await saveVehicle(vehicle);
+          // Ensure each vehicle has a valid UUID
+          const vehicleWithValidId = {
+            ...vehicle,
+            id: isValidUUID(vehicle.id || '') ? vehicle.id : uuidv4()
+          };
+          
+          await saveVehicle(vehicleWithValidId);
           successCount++;
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to sync vehicle ${vehicle.id}:`, error);
           errorCount++;
+          if (error.message) {
+            errorMessages.push(`${vehicle.make} ${vehicle.model}: ${error.message}`);
+          }
         }
       }
       
@@ -212,8 +242,12 @@ export const useGarageData = () => {
         toast.success(`All ${successCount} vehicles saved successfully`);
         setSyncError(null);
       } else {
+        const detailedError = errorMessages.length > 0
+          ? `${errorCount} vehicles failed to save: ${errorMessages.slice(0, 2).join(', ')}${errorMessages.length > 2 ? '...' : ''}`
+          : `${errorCount} vehicles failed to save`;
+          
         toast.warning(`Saved ${successCount} vehicles, ${errorCount} failed`);
-        setSyncError(`${errorCount} vehicles failed to save`);
+        setSyncError(detailedError);
       }
     } catch (error) {
       console.error('Save all vehicles failed:', error);
