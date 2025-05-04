@@ -24,6 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Vehicle } from "@/utils/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   make: z.string().min(1, "Make is required"),
@@ -43,6 +45,7 @@ interface AddVehicleFormProps {
 
 const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLookingUp, setIsLookingUp] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,13 +67,13 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
       // In a real app, you would call an API here
       const newVehicle: Vehicle = {
         id: Date.now().toString(), // Generate a temporary ID
-        make: data.make,         // Ensure required property is explicitly assigned
-        model: data.model,       // Ensure required property is explicitly assigned
-        year: data.year,         // Ensure required property is explicitly assigned
-        mileage: data.mileage,   // Ensure required property is explicitly assigned
-        plate: data.plate,       // Optional property
-        vin: data.vin,           // Optional property
-        image: data.image || undefined,  // Handle empty string
+        make: data.make,
+        model: data.model,
+        year: data.year,
+        mileage: data.mileage,
+        plate: data.plate,
+        vin: data.vin,
+        image: data.image || undefined,
       };
       
       // Adding a small delay to simulate an API call
@@ -88,6 +91,57 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
     }
   };
 
+  const handleLookupPlate = async () => {
+    const plateValue = form.getValues("plate");
+    
+    if (!plateValue || plateValue.trim() === "") {
+      toast.error("Please enter a license plate");
+      return;
+    }
+    
+    setIsLookingUp(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("vehicle-lookup", {
+        body: { plate: plateValue }
+      });
+      
+      if (error) {
+        console.error("Error from edge function:", error);
+        toast.error(error.message || "Failed to fetch vehicle data");
+        return;
+      }
+      
+      if (data.error) {
+        console.error("API error:", data.error);
+        toast.error(data.error === "Vehicle not found" 
+          ? "No vehicle found with that license plate" 
+          : "Error looking up vehicle");
+        return;
+      }
+      
+      // Update form fields with fetched data
+      form.setValue("make", data.make);
+      form.setValue("model", data.model);
+      
+      if (data.year) {
+        form.setValue("year", data.year);
+      }
+      
+      if (data.vin) {
+        form.setValue("vin", data.vin);
+      }
+      
+      toast.success("Vehicle found! Information filled in automatically.");
+      
+    } catch (error) {
+      console.error("Error looking up vehicle:", error);
+      toast.error("Failed to lookup vehicle");
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -100,6 +154,39 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <FormField
+                control={form.control}
+                name="plate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>License Plate</FormLabel>
+                    <div className="flex space-x-2">
+                      <FormControl>
+                        <Input placeholder="e.g. AB12345" {...field} />
+                      </FormControl>
+                      <Button 
+                        type="button"
+                        variant="secondary"
+                        onClick={handleLookupPlate}
+                        disabled={isLookingUp}
+                        className="whitespace-nowrap"
+                      >
+                        {isLookingUp ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Look Up
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      Enter a plate number to auto-fill vehicle details
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -160,35 +247,19 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="plate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>License Plate</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Optional" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="vin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>VIN</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Optional" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="vin"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>VIN</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Vehicle Identification Number (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
