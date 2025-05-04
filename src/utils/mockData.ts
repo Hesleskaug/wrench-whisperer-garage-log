@@ -121,7 +121,11 @@ export const mockServiceLogs: ServiceLog[] = [
           invoiceNumber: 'INV-56789',
           date: '2023-11-14',
           amount: 150
-        }
+        },
+        images: [
+          'https://images.unsplash.com/photo-1635768680691-593148bcbbd2?q=80&w=600&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1676218075639-9d47246e2fcb?q=80&w=600&auto=format&fit=crop'
+        ]
       },
       { 
         id: '1-5', 
