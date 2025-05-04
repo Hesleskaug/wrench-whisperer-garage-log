@@ -11,6 +11,7 @@ export const useGarageData = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncAttempt, setLastSyncAttempt] = useState<Date | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Load vehicles and service logs when garage ID changes
   useEffect(() => {
@@ -42,6 +43,7 @@ export const useGarageData = () => {
             
             // Update localStorage with the latest from Supabase
             localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(supabaseVehicles));
+            setSyncError(null); // Clear any previous sync errors
           } else if (localVehicles.length > 0) {
             // If no vehicles in Supabase but we have them in localStorage, use those
             console.log('Using vehicles from localStorage:', localVehicles);
@@ -51,9 +53,11 @@ export const useGarageData = () => {
             setIsSyncing(true);
             syncVehicles(localVehicles).then(() => {
               toast.success('Vehicles synced to cloud successfully');
+              setSyncError(null);
             }).catch(error => {
               console.error('Failed to sync localStorage vehicles to Supabase:', error);
               // Show a more specific error about device syncing
+              setSyncError('Could not sync to cloud. Try manual sync later.');
               toast.error('Could not sync vehicles to cloud. Your data is saved locally but may not appear on other devices.');
             }).finally(() => {
               setIsSyncing(false);
@@ -71,8 +75,10 @@ export const useGarageData = () => {
             setIsSyncing(true);
             syncVehicles(defaultMockVehicles).then(() => {
               toast.success('Mock vehicles synced to cloud successfully');
+              setSyncError(null);
             }).catch(error => {
               console.error('Failed to sync mock vehicles to Supabase:', error);
+              setSyncError('Could not sync to cloud. Try manual sync later.');
               toast.error('Could not sync vehicles to cloud. Your data is saved locally but may not appear on other devices.');
             }).finally(() => {
               setIsSyncing(false);
@@ -92,6 +98,7 @@ export const useGarageData = () => {
             localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(defaultMockVehicles));
           }
           
+          setSyncError('Connection to cloud failed. Using local data.');
           toast.error('Could not connect to cloud storage. Working with local data only.');
         }
         
@@ -106,6 +113,7 @@ export const useGarageData = () => {
         }
       } catch (error) {
         console.error('Error in loadVehicles function:', error);
+        setSyncError('Failed to load garage data.');
         toast.error('There was a problem loading your garage data');
         
         // Final fallback to mock data
@@ -143,9 +151,11 @@ export const useGarageData = () => {
       syncVehicles(updatedVehicles)
         .then(() => {
           toast.success('Vehicle saved and synced to cloud');
+          setSyncError(null);
         })
         .catch(error => {
           console.error('Failed to sync updated vehicles to Supabase:', error);
+          setSyncError('Failed to sync to cloud. Try manual sync later.');
           toast.info('Vehicle saved locally. Will try to sync to cloud again later.');
         })
         .finally(() => {
@@ -177,9 +187,11 @@ export const useGarageData = () => {
       syncVehicles(updatedVehicles)
         .then(() => {
           console.log('Vehicle mileage updated and synced to cloud');
+          setSyncError(null);
         })
         .catch(error => {
           console.error('Failed to sync updated mileage to Supabase:', error);
+          setSyncError('Failed to sync to cloud. Try manual sync later.');
           toast.info('Vehicle mileage updated locally. Will try to sync to cloud later.');
         })
         .finally(() => {
@@ -189,7 +201,7 @@ export const useGarageData = () => {
     }
   };
 
-  // Function to manually trigger a sync attempt
+  // Improved function to manually trigger a sync attempt
   const triggerSync = async () => {
     if (!garageId || vehicles.length === 0) return;
     
@@ -200,14 +212,17 @@ export const useGarageData = () => {
     }
     
     setIsSyncing(true);
+    setSyncError(null);
     toast.info('Syncing vehicles to cloud...');
     
     try {
       await syncVehicles(vehicles);
       toast.success('Successfully synced vehicles to cloud storage');
+      setSyncError(null);
       setLastSyncAttempt(new Date());
     } catch (error) {
       console.error('Manual sync failed:', error);
+      setSyncError('Sync failed. Please try again later.');
       toast.error('Failed to sync vehicles to cloud storage. Please try again later.');
     } finally {
       setIsSyncing(false);
@@ -219,6 +234,7 @@ export const useGarageData = () => {
     serviceLogs,
     isLoading,
     isSyncing,
+    syncError,
     lastSyncAttempt,
     handleAddVehicle,
     handleAddServiceLog,

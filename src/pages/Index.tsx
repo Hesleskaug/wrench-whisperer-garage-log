@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
@@ -8,7 +9,7 @@ import GarageHeader from '@/components/GarageHeader';
 import VehicleList from '@/components/VehicleList';
 import { useGarageData } from '@/hooks/useGarageData';
 import { Button } from "@/components/ui/button";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, AlertCircle } from "lucide-react";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -17,6 +18,7 @@ const Index = () => {
     serviceLogs, 
     isLoading, 
     isSyncing,
+    syncError,
     lastSyncAttempt,
     handleAddVehicle, 
     handleAddServiceLog,
@@ -73,20 +75,30 @@ const Index = () => {
       <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
       
       <div className="mb-4 flex items-center justify-end">
-        <div className="text-xs text-muted-foreground mr-2">
-          {lastSyncAttempt && !isSyncing && (
-            <span>Last sync: {formatLastSync()}</span>
+        <div className="flex items-center mr-2">
+          {syncError && (
+            <div className="text-xs text-destructive flex items-center mr-2">
+              <AlertCircle size={14} className="mr-1" />
+              <span>{syncError}</span>
+            </div>
           )}
+          
+          <div className="text-xs text-muted-foreground">
+            {lastSyncAttempt && !isSyncing && (
+              <span>Last sync: {formatLastSync()}</span>
+            )}
+          </div>
         </div>
+        
         <Button 
-          variant="outline" 
+          variant={syncError ? "destructive" : "outline"}
           size="sm" 
           onClick={triggerSync} 
           disabled={isLoading || isSyncing}
           className="flex items-center gap-1"
         >
           <CloudUpload size={16} className={isSyncing ? "animate-spin" : ""} />
-          {isSyncing ? "Syncing..." : "Sync to Cloud"}
+          {isSyncing ? "Syncing..." : syncError ? "Retry Sync" : "Sync to Cloud"}
         </Button>
       </div>
       
