@@ -11,14 +11,17 @@ interface ServiceHistoryTableProps {
   vehicle: Vehicle;
   serviceLogs: ServiceLog[];
   onUpdateServiceLog?: (updatedLog: ServiceLog) => void;
+  onAddServiceLog?: (serviceLog: ServiceLog) => void;
 }
 
 const ServiceHistoryTable = ({ 
   vehicle, 
   serviceLogs,
-  onUpdateServiceLog
+  onUpdateServiceLog,
+  onAddServiceLog
 }: ServiceHistoryTableProps) => {
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [isAddingLog, setIsAddingLog] = useState(false);
   
   const sortedLogs = [...serviceLogs]
     .filter(log => log.vehicleId === vehicle.id)
@@ -38,16 +41,27 @@ const ServiceHistoryTable = ({
       onUpdateServiceLog(updatedLog);
     }
   };
+
+  const handleAddServiceLog = (newLog: ServiceLog) => {
+    setIsAddingLog(false);
+    if (onAddServiceLog) {
+      onAddServiceLog(newLog);
+    }
+  };
+  
+  const handleAddServiceClick = () => {
+    setIsAddingLog(true);
+  };
   
   if (sortedLogs.length === 0) {
-    return <EmptyServiceHistory />;
+    return <EmptyServiceHistory onAddService={onAddServiceLog ? handleAddServiceClick : undefined} />;
   }
 
   const currentlyEditingLog = editingLogId ? sortedLogs.find(log => log.id === editingLogId) : null;
 
   return (
     <div>
-      <ServiceHistoryHeader onPrint={handlePrint} />
+      <ServiceHistoryHeader onPrint={handlePrint} onAddService={onAddServiceLog ? handleAddServiceClick : undefined} />
       
       <div className="space-y-6">
         {sortedLogs.map((log) => (
@@ -67,6 +81,15 @@ const ServiceHistoryTable = ({
           vehicle={vehicle}
           onAddServiceLog={handleUpdateServiceLog}
           editingLog={currentlyEditingLog}
+        />
+      )}
+
+      {isAddingLog && (
+        <ServiceLogForm
+          open={isAddingLog}
+          onOpenChange={setIsAddingLog}
+          vehicle={vehicle}
+          onAddServiceLog={handleAddServiceLog}
         />
       )}
     </div>
