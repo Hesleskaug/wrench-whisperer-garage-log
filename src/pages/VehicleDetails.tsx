@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import ServiceLogForm from "@/components/ServiceLogForm";
 import EditVehicleForm from "@/components/EditVehicleForm";
 import DeleteVehicleDialog from "@/components/DeleteVehicleDialog";
 import VehicleSpecsCard from "@/components/VehicleSpecsCard";
-import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2, Clock } from "lucide-react";
 import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/mockData";
 import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
@@ -200,6 +201,12 @@ const VehicleDetails = () => {
 
   if (!vehicle) return null;
 
+  // Check if the vehicle is imported (has different first registration date than import date)
+  const isImported = vehicleDetails && 
+                     vehicleDetails.importDate && 
+                     vehicleDetails.firstRegistrationDate && 
+                     vehicleDetails.importDate !== vehicleDetails.firstRegistrationDate;
+
   return (
     <div className="container py-8">
       <Button 
@@ -251,6 +258,23 @@ const VehicleDetails = () => {
                   </Button>
                 </div>
               </div>
+              
+              {/* Date information badges */}
+              {vehicleDetails && (
+                <div className="flex flex-wrap gap-2 my-3">
+                  {vehicleDetails.firstRegistrationDate && (
+                    <Badge variant="secondary" className="flex items-center gap-1 bg-blue-50 text-blue-700">
+                      <Clock className="h-3 w-3" /> 
+                      First Reg: {formatDate(vehicleDetails.firstRegistrationDate)}
+                    </Badge>
+                  )}
+                  {isImported && (
+                    <Badge variant="secondary" className="bg-amber-50 text-amber-700">
+                      Imported: {formatDate(vehicleDetails.importDate)}
+                    </Badge>
+                  )}
+                </div>
+              )}
               
               <div className="mt-4 space-y-3">
                 <div className="flex justify-between">

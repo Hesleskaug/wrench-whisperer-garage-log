@@ -95,6 +95,8 @@ serve(async (req) => {
       vin: "",
       plate: cleanPlate,
       registrationDate: null,
+      firstRegistrationDate: null, // Added this to track original registration
+      importDate: null, // Added to track when it was imported (if applicable)
       
       // Physical characteristics
       color: "",
@@ -148,11 +150,30 @@ serve(async (req) => {
       transformedData.vin = vehicle.kjoretoyId.understellsnummer;
     }
     
-    // Extract registration date and year
+    // Extract original first registration date worldwide
+    if (vehicle.godkjenning?.forstegangsGodkjenning?.forstegangRegistrertDato) {
+      transformedData.firstRegistrationDate = vehicle.godkjenning.forstegangsGodkjenning.forstegangRegistrertDato;
+      
+      // Use the original first registration date for year, not the import date
+      const originalYear = parseInt(vehicle.godkjenning.forstegangsGodkjenning.forstegangRegistrertDato.substring(0, 4), 10);
+      if (!isNaN(originalYear)) {
+        transformedData.year = originalYear;
+      }
+    }
+    
+    // Extract registration date in Norway (could be import date)
     if (vehicle.forstegangsregistrering?.registrertForstegangNorgeDato) {
       transformedData.registrationDate = vehicle.forstegangsregistrering.registrertForstegangNorgeDato;
-      // Extract year from registration date
-      transformedData.year = parseInt(vehicle.forstegangsregistrering.registrertForstegangNorgeDato.substring(0, 4), 10);
+      
+      // If we don't have a manufacturing year from original registration, use this as fallback
+      if (!transformedData.year) {
+        transformedData.year = parseInt(vehicle.forstegangsregistrering.registrertForstegangNorgeDato.substring(0, 4), 10);
+      }
+      
+      // If import information exists, set import date
+      if (vehicle.godkjenning?.forstegangsGodkjenning?.bruktimport) {
+        transformedData.importDate = vehicle.forstegangsregistrering.registrertForstegangNorgeDato;
+      }
     }
     
     // Extract color

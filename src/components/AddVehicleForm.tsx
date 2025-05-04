@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Vehicle } from "@/utils/mockData";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Info, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Extended form schema with additional fields
@@ -60,6 +60,8 @@ interface VehicleLookupResponse {
   vin: string;
   plate: string;
   registrationDate: string | null;
+  firstRegistrationDate: string | null;
+  importDate: string | null;
   color: string;
   weight: number | null;
   engineSize: number | null;
@@ -310,11 +312,19 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
                   <div className="flex items-center gap-2 mb-2">
                     <Info className="h-5 w-5 text-green-600" />
                     <span className="font-medium text-green-800">Vehicle Data Retrieved</span>
-                    {vehicleDetails.registrationDate && (
-                      <Badge variant="outline" className="ml-auto">
-                        Reg: {formatDate(vehicleDetails.registrationDate)}
-                      </Badge>
-                    )}
+                    <div className="ml-auto flex flex-wrap gap-2">
+                      {vehicleDetails.firstRegistrationDate && (
+                        <Badge variant="outline" className="flex items-center gap-1 bg-blue-50">
+                          <Calendar className="h-3 w-3" /> 
+                          First Reg: {formatDate(vehicleDetails.firstRegistrationDate)}
+                        </Badge>
+                      )}
+                      {vehicleDetails.importDate && vehicleDetails.importDate !== vehicleDetails.firstRegistrationDate && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-800">
+                          Imported: {formatDate(vehicleDetails.importDate)}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="vehicle-details">
