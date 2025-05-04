@@ -86,19 +86,51 @@ serve(async (req) => {
     const vehicle = vehicleData.kjoretoydataListe[0];
     console.log("Processing vehicle data:", JSON.stringify(vehicle));
     
-    // Extract relevant information from the response
+    // Extract comprehensive information from the response
     const transformedData = {
+      // Basic vehicle information
       make: "",
       model: "",
       year: null,
       vin: "",
       plate: cleanPlate,
       registrationDate: null,
+      
+      // Physical characteristics
       color: "",
       weight: null,
+      length: null,
+      width: null,
+      height: null,
+      
+      // Engine and drivetrain
       engineSize: null,
+      enginePower: null,
       fuelType: "",
-      ownerStatus: ""
+      engineCode: "",
+      transmission: "",
+      drivetrain: "",
+      
+      // Classification and usage
+      vehicleCategory: "",
+      bodyType: "",
+      numberOfDoors: null,
+      seatingCapacity: null,
+      
+      // Technical inspection
+      inspectionDue: null,
+      lastInspection: null,
+      
+      // Tires and wheels
+      tireSizeFront: "",
+      tireSizeRear: "",
+      
+      // Environmental data
+      emissionClass: "",
+      co2Emission: null,
+      
+      // Complete raw data for reference
+      rawData: vehicle
     };
     
     // Extract make/brand
@@ -116,7 +148,7 @@ serve(async (req) => {
       transformedData.vin = vehicle.kjoretoyId.understellsnummer;
     }
     
-    // Extract registration date
+    // Extract registration date and year
     if (vehicle.forstegangsregistrering?.registrertForstegangNorgeDato) {
       transformedData.registrationDate = vehicle.forstegangsregistrering.registrertForstegangNorgeDato;
       // Extract year from registration date
@@ -133,9 +165,25 @@ serve(async (req) => {
       transformedData.weight = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.vekter.egenvekt;
     }
     
+    // Extract dimensions
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.dimensjoner?.lengde) {
+      transformedData.length = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.dimensjoner.lengde;
+    }
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.dimensjoner?.bredde) {
+      transformedData.width = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.dimensjoner.bredde;
+    }
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.dimensjoner?.hoyde) {
+      transformedData.height = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.dimensjoner.hoyde;
+    }
+    
     // Extract engine size
     if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.motorOgDrivverk?.motor?.[0]?.slagvolum) {
       transformedData.engineSize = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.motor[0].slagvolum;
+    }
+    
+    // Extract engine power
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.motorOgDrivverk?.motor?.[0]?.drivstoff?.[0]?.maksNettoEffekt) {
+      transformedData.enginePower = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.motor[0].drivstoff[0].maksNettoEffekt;
     }
     
     // Extract fuel type
@@ -143,6 +191,61 @@ serve(async (req) => {
       transformedData.fuelType = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.motor[0].drivstoff[0].drivstoffKode.kodeNavn;
     }
     
+    // Extract engine code
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.motorOgDrivverk?.motor?.[0]?.motorKode) {
+      transformedData.engineCode = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.motor[0].motorKode;
+    }
+    
+    // Extract transmission type
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.motorOgDrivverk?.girkassetype?.kodeNavn) {
+      transformedData.transmission = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.girkassetype.kodeNavn;
+    }
+    
+    // Extract vehicle category
+    if (vehicle.godkjenning?.tekniskGodkjenning?.kjoretoyklassifisering?.beskrivelse) {
+      transformedData.vehicleCategory = vehicle.godkjenning.tekniskGodkjenning.kjoretoyklassifisering.beskrivelse;
+    }
+    
+    // Extract body type
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.karosseriOgLasteplan?.karosseritype?.kodeNavn) {
+      transformedData.bodyType = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.karosseriOgLasteplan.karosseritype.kodeNavn;
+    }
+    
+    // Extract number of doors
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.karosseriOgLasteplan?.antallDorer?.[0]) {
+      transformedData.numberOfDoors = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.karosseriOgLasteplan.antallDorer[0];
+    }
+    
+    // Extract seating capacity
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.persontall?.sitteplasserTotalt) {
+      transformedData.seatingCapacity = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.persontall.sitteplasserTotalt;
+    }
+    
+    // Extract technical inspection dates
+    if (vehicle.periodiskKjoretoyKontroll?.kontrollfrist) {
+      transformedData.inspectionDue = vehicle.periodiskKjoretoyKontroll.kontrollfrist;
+    }
+    if (vehicle.periodiskKjoretoyKontroll?.sistGodkjent) {
+      transformedData.lastInspection = vehicle.periodiskKjoretoyKontroll.sistGodkjent;
+    }
+    
+    // Extract tire sizes
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.dekkOgFelg?.akselDekkOgFelgKombinasjon?.[0]?.akselDekkOgFelg?.[0]?.dekkdimensjon) {
+      transformedData.tireSizeFront = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.dekkOgFelg.akselDekkOgFelgKombinasjon[0].akselDekkOgFelg[0].dekkdimensjon;
+    }
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.dekkOgFelg?.akselDekkOgFelgKombinasjon?.[0]?.akselDekkOgFelg?.[1]?.dekkdimensjon) {
+      transformedData.tireSizeRear = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.dekkOgFelg.akselDekkOgFelgKombinasjon[0].akselDekkOgFelg[1].dekkdimensjon;
+    }
+    
+    // Extract emission data
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.miljodata?.euroKlasse?.kodeNavn) {
+      transformedData.emissionClass = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.miljodata.euroKlasse.kodeNavn;
+    }
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.miljodata?.miljoOgdrivstoffGruppe?.[0]?.forbrukOgUtslipp?.[0]?.co2BlandetKjoring) {
+      transformedData.co2Emission = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.miljodata.miljoOgdrivstoffGruppe[0].forbrukOgUtslipp[0].co2BlandetKjoring;
+    }
+    
+    // Log the full transformed data
     console.log("Transformed vehicle data:", JSON.stringify(transformedData));
     
     return new Response(

@@ -21,12 +21,21 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Vehicle } from "@/utils/mockData";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
+// Extended form schema with additional fields
 const formSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
@@ -43,11 +52,44 @@ interface AddVehicleFormProps {
   onAddVehicle: (vehicle: Vehicle) => void;
 }
 
+// Interface for the vehicle lookup response
+interface VehicleLookupResponse {
+  make: string;
+  model: string;
+  year: number | null;
+  vin: string;
+  plate: string;
+  registrationDate: string | null;
+  color: string;
+  weight: number | null;
+  engineSize: number | null;
+  fuelType: string;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  enginePower?: number | null;
+  engineCode?: string;
+  transmission?: string;
+  vehicleCategory?: string;
+  bodyType?: string;
+  numberOfDoors?: number | null;
+  seatingCapacity?: number | null;
+  inspectionDue?: string | null;
+  lastInspection?: string | null;
+  tireSizeFront?: string;
+  tireSizeRear?: string;
+  emissionClass?: string;
+  co2Emission?: number | null;
+  rawData?: any;
+  error?: string;
+}
+
 const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [lookupSuccess, setLookupSuccess] = useState<boolean>(false);
+  const [vehicleDetails, setVehicleDetails] = useState<VehicleLookupResponse | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -84,6 +126,8 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
       onAddVehicle(newVehicle);
       toast.success("Vehicle added successfully");
       form.reset();
+      setVehicleDetails(null);
+      setLookupSuccess(false);
       onOpenChange(false);
     } catch (error) {
       console.error("Error adding vehicle:", error);
@@ -97,6 +141,7 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
     const plateValue = form.getValues("plate");
     setLookupError(null);
     setLookupSuccess(false);
+    setVehicleDetails(null);
     
     if (!plateValue || plateValue.trim() === "") {
       toast.error("Please enter a license plate");
@@ -128,10 +173,13 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
         return;
       }
       
-      // Check if we have meaningful data
-      const hasData = data.make || data.model || data.vin || data.year;
+      // Store the full vehicle details
+      setVehicleDetails(data);
       
-      if (!hasData) {
+      // Check if we have meaningful basic data
+      const hasBasicData = data.make || data.model || data.vin || data.year;
+      
+      if (!hasBasicData) {
         setLookupError("No vehicle details found for this plate");
         toast.error("No vehicle details found for this plate");
         return;
@@ -183,9 +231,20 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
     }
   };
 
+  // Format date from API (YYYY-MM-DD) to local format
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "N/A";
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-mechanic-blue">Add New Vehicle</DialogTitle>
           <DialogDescription>
@@ -226,6 +285,7 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
                       </div>
                     ) : lookupSuccess ? (
                       <div className="flex items-center gap-2 text-sm text-green-500 mt-1">
+                        <CheckCircle2 className="h-4 w-4" />
                         <span>Vehicle details retrieved successfully</span>
                       </div>
                     ) : (
@@ -238,6 +298,72 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
                 )}
               />
             </div>
+
+            {vehicleDetails && (
+              <Card className="border-dashed border-green-200 bg-green-50 mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Info className="h-5 w-5 text-green-600" />
+                    <span className="font-medium text-green-800">Vehicle Data Retrieved</span>
+                    {vehicleDetails.registrationDate && (
+                      <Badge variant="outline" className="ml-auto">
+                        Reg: {formatDate(vehicleDetails.registrationDate)}
+                      </Badge>
+                    )}
+                  </div>
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="vehicle-details">
+                      <AccordionTrigger className="text-sm">
+                        View all retrieved vehicle details
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Basic Information</h4>
+                            <p><span className="font-medium">Make:</span> {vehicleDetails.make || "N/A"}</p>
+                            <p><span className="font-medium">Model:</span> {vehicleDetails.model || "N/A"}</p>
+                            <p><span className="font-medium">Year:</span> {vehicleDetails.year || "N/A"}</p>
+                            <p><span className="font-medium">VIN:</span> {vehicleDetails.vin || "N/A"}</p>
+                            <p><span className="font-medium">Color:</span> {vehicleDetails.color || "N/A"}</p>
+                            <p><span className="font-medium">Category:</span> {vehicleDetails.vehicleCategory || "N/A"}</p>
+                            <p><span className="font-medium">Body Type:</span> {vehicleDetails.bodyType || "N/A"}</p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Technical Data</h4>
+                            <p><span className="font-medium">Engine:</span> {vehicleDetails.engineSize ? `${vehicleDetails.engineSize}cc` : "N/A"}</p>
+                            <p><span className="font-medium">Power:</span> {vehicleDetails.enginePower ? `${vehicleDetails.enginePower}kW` : "N/A"}</p>
+                            <p><span className="font-medium">Fuel Type:</span> {vehicleDetails.fuelType || "N/A"}</p>
+                            <p><span className="font-medium">Weight:</span> {vehicleDetails.weight ? `${vehicleDetails.weight}kg` : "N/A"}</p>
+                            <p><span className="font-medium">Transmission:</span> {vehicleDetails.transmission || "N/A"}</p>
+                            <p><span className="font-medium">Engine Code:</span> {vehicleDetails.engineCode || "N/A"}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Dimensions</h4>
+                            <p><span className="font-medium">Length:</span> {vehicleDetails.length ? `${vehicleDetails.length}mm` : "N/A"}</p>
+                            <p><span className="font-medium">Width:</span> {vehicleDetails.width ? `${vehicleDetails.width}mm` : "N/A"}</p>
+                            <p><span className="font-medium">Height:</span> {vehicleDetails.height ? `${vehicleDetails.height}mm` : "N/A"}</p>
+                            <p><span className="font-medium">Doors:</span> {vehicleDetails.numberOfDoors || "N/A"}</p>
+                            <p><span className="font-medium">Seats:</span> {vehicleDetails.seatingCapacity || "N/A"}</p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Other Information</h4>
+                            <p><span className="font-medium">Inspection Due:</span> {formatDate(vehicleDetails.inspectionDue || null)}</p>
+                            <p><span className="font-medium">Last Inspection:</span> {formatDate(vehicleDetails.lastInspection || null)}</p>
+                            <p><span className="font-medium">Tire Size (Front):</span> {vehicleDetails.tireSizeFront || "N/A"}</p>
+                            <p><span className="font-medium">Tire Size (Rear):</span> {vehicleDetails.tireSizeRear || "N/A"}</p>
+                            <p><span className="font-medium">Emission Class:</span> {vehicleDetails.emissionClass || "N/A"}</p>
+                            <p><span className="font-medium">CO2 Emission:</span> {vehicleDetails.co2Emission ? `${vehicleDetails.co2Emission}g/km` : "N/A"}</p>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
