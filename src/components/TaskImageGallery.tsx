@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { ImageIcon } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TaskImageGalleryProps {
   images: string[];
@@ -15,6 +16,7 @@ interface TaskImageGalleryProps {
 
 const TaskImageGallery = ({ images }: TaskImageGalleryProps) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   if (!images || images.length === 0) {
     return null;
@@ -24,7 +26,7 @@ const TaskImageGallery = ({ images }: TaskImageGalleryProps) => {
     <>
       <div className="mt-2">
         <div className="text-sm font-medium text-mechanic-gray mb-1 flex items-center gap-1">
-          <ImageIcon size={16} /> Images ({images.length})
+          <ImageIcon size={16} /> {t('images')} ({images.length})
         </div>
         <div className="flex flex-wrap gap-2">
           {images.map((url, index) => (

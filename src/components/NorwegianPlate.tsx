@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface NorwegianPlateProps {
   plate: string | undefined;
@@ -7,8 +8,10 @@ interface NorwegianPlateProps {
 }
 
 const NorwegianPlate = ({ plate, className = '' }: NorwegianPlateProps) => {
+  const { t } = useLanguage();
+  
   if (!plate) {
-    return <div className={`bg-mechanic-silver px-3 py-1 rounded-full text-xs font-medium text-mechanic-dark ${className}`}>No Plate</div>;
+    return <div className={`bg-mechanic-silver px-3 py-1 rounded-full text-xs font-medium text-mechanic-dark ${className}`}>{t('noPlate')}</div>;
   }
 
   // Format the plate - Norwegian plates typically have 2 letters followed by 5 digits or numbers

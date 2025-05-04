@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon, PlusCircle, XCircle, CheckCircle, Upload, Link, Receipt } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TaskImageUploaderProps {
   images: string[];
@@ -32,6 +33,7 @@ const TaskImageUploader = ({
   const [showUploader, setShowUploader] = useState(false);
   const [receiptNote, setReceiptNote] = useState(initialReceiptData.note);
   const [websiteUrl, setWebsiteUrl] = useState(initialReceiptData.websiteUrl);
+  const { t } = useLanguage();
 
   const addImage = () => {
     if (!imageUrl.trim()) return;
@@ -120,7 +122,7 @@ const TaskImageUploader = ({
               </button>
               {onSetMainImage && mainImage === url && (
                 <span className="absolute bottom-0 left-0 right-0 bg-mechanic-blue bg-opacity-80 text-white text-[8px] text-center py-0.5">
-                  Main Image
+                  {t('mainImage')}
                 </span>
               )}
             </div>
@@ -137,7 +139,7 @@ const TaskImageUploader = ({
           onClick={() => setShowUploader(!showUploader)}
         >
           <Upload size={16} />
-          Upload Image
+          {t('uploadImage')}
         </Button>
         
         <Button
@@ -149,7 +151,7 @@ const TaskImageUploader = ({
         >
           <PlusCircle size={16} />
           <ImageIcon size={16} />
-          Add Image URL
+          {t('addImageUrl')}
         </Button>
       </div>
       
@@ -179,7 +181,7 @@ const TaskImageUploader = ({
             size="sm" 
             onClick={addImage}
           >
-            Add
+            {t('add')}
           </Button>
           <Button
             type="button"
@@ -190,7 +192,7 @@ const TaskImageUploader = ({
               setShowInput(false);
             }}
           >
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
       )}

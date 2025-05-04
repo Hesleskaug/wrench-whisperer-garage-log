@@ -4,6 +4,7 @@ import { ServiceTask } from '@/utils/mockData';
 import { Check, Clock, FileText, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskImageGallery from './TaskImageGallery';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ServiceTaskListProps {
   tasks?: ServiceTask[];
@@ -11,10 +12,12 @@ interface ServiceTaskListProps {
 }
 
 const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
+  const { t } = useLanguage();
+  
   if (!tasks?.length) {
     return (
       <div className={cn("text-center p-4 text-mechanic-gray", className)}>
-        No tasks recorded for this service
+        {t('noTasks')}
       </div>
     );
   }
@@ -51,14 +54,14 @@ const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
               
               {task.torqueSpec && (
                 <div className="mt-2 text-xs bg-mechanic-blue/10 text-mechanic-blue inline-flex items-center px-2 py-1 rounded">
-                  <span className="font-bold mr-1">Torque:</span> {task.torqueSpec}
+                  <span className="font-bold mr-1">{t('torque')}:</span> {task.torqueSpec}
                 </div>
               )}
               
               {task.toolsRequired && task.toolsRequired.length > 0 && (
                 <div className="mt-2">
                   <div className="text-xs font-medium text-mechanic-gray mb-1 flex items-center gap-1">
-                    <Wrench size={12} /> Tools Required:
+                    <Wrench size={12} /> {t('toolsRequired')}:
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {task.toolsRequired.map((tool, index) => (
@@ -75,17 +78,17 @@ const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
               
               {task.receipt && (
                 <div className="mt-2 border border-mechanic-silver/20 rounded-md p-2 bg-mechanic-silver/5">
-                  <div className="text-xs font-medium text-mechanic-gray mb-1">Receipt Information</div>
+                  <div className="text-xs font-medium text-mechanic-gray mb-1">{t('receiptInformation')}</div>
                   <div className="text-sm">{task.receipt.store}</div>
                   <div className="flex flex-wrap gap-x-4 text-xs text-mechanic-gray mt-1">
                     {task.receipt.invoiceNumber && (
-                      <div>Invoice: {task.receipt.invoiceNumber}</div>
+                      <div>{t('invoice')}: {task.receipt.invoiceNumber}</div>
                     )}
                     {task.receipt.date && (
-                      <div>Date: {task.receipt.date}</div>
+                      <div>{t('date')}: {task.receipt.date}</div>
                     )}
                     {task.receipt.amount !== undefined && (
-                      <div>Amount: ${task.receipt.amount.toFixed(2)}</div>
+                      <div>{t('amount')}: ${task.receipt.amount.toFixed(2)}</div>
                     )}
                   </div>
                 </div>

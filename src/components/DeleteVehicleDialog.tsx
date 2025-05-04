@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Vehicle } from "@/utils/mockData";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DeleteVehicleDialogProps {
   open: boolean;
@@ -24,23 +25,21 @@ const DeleteVehicleDialog = ({
   vehicle,
   onDeleteVehicle,
 }: DeleteVehicleDialogProps) => {
+  const { t } = useLanguage();
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete{" "}
-            <span className="font-semibold">
-              {vehicle.year} {vehicle.make} {vehicle.model}
-            </span>{" "}
-            and all its service history from your garage. This action cannot be undone.
+            {t('deleteWarning')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onDeleteVehicle} className="bg-red-600 hover:bg-red-700">
-            Delete
+            {t('delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

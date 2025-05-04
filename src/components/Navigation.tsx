@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGarage } from '@/contexts/GarageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from "@/components/ui/button";
+import LanguageSwitcher from './LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Navigation = () => {
   const { garageId, leaveGarage } = useGarage();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -90,8 +93,10 @@ const Navigation = () => {
             to="/"
             className="text-mechanic-gray hover:text-mechanic-blue transition-colors"
           >
-            Garage
+            {t('garage')}
           </Link>
+          
+          <LanguageSwitcher className="mr-2" />
           
           {garageId ? (
             <DropdownMenu>
@@ -101,7 +106,7 @@ const Navigation = () => {
                   className="flex items-center gap-2"
                 >
                   <Home size={16} />
-                  Your Garage
+                  {t('yourGarage')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
@@ -122,16 +127,16 @@ const Navigation = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>
                   <Mail size={16} className="mr-2" />
-                  Email Garage ID
+                  {t('emailGarageId')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings size={16} className="mr-2" />
-                  Settings
+                  {t('settings')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLeaveGarage}>
                   <LogOut size={16} className="mr-2" />
-                  Exit Garage
+                  {t('exitGarage')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -141,7 +146,7 @@ const Navigation = () => {
               className="bg-mechanic-blue hover:bg-mechanic-blue/90"
               onClick={() => navigate('/garage')}
             >
-              Access Garage
+              {t('accessGarage')}
             </Button>
           )}
         </nav>
@@ -165,8 +170,13 @@ const Navigation = () => {
                 className="text-lg py-2 text-mechanic-gray hover:text-mechanic-blue transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Garage
+                {t('garage')}
               </Link>
+              
+              <div className="flex items-center py-2">
+                <span className="text-mechanic-gray mr-3">{t('language')}:</span>
+                <LanguageSwitcher />
+              </div>
               
               {garageId ? (
                 <>
@@ -193,7 +203,7 @@ const Navigation = () => {
                     }}
                   >
                     <Mail size={18} className="mr-2" />
-                    Email Garage ID
+                    {t('emailGarageId')}
                   </Button>
                   <Link
                     to="/settings"
@@ -201,7 +211,7 @@ const Navigation = () => {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Settings size={18} className="inline mr-2" />
-                    Settings
+                    {t('settings')}
                   </Link>
                   <Button 
                     variant="outline" 
@@ -212,7 +222,7 @@ const Navigation = () => {
                     }}
                   >
                     <LogOut size={18} className="mr-2" />
-                    Exit Garage
+                    {t('exitGarage')}
                   </Button>
                 </>
               ) : (
@@ -224,7 +234,7 @@ const Navigation = () => {
                     setMobileMenuOpen(false);
                   }}
                 >
-                  Access Garage
+                  {t('accessGarage')}
                 </Button>
               )}
             </nav>
@@ -236,9 +246,9 @@ const Navigation = () => {
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Email your Garage ID</DialogTitle>
+            <DialogTitle>{t('emailYourGarageId')}</DialogTitle>
             <DialogDescription>
-              Send your Garage ID to your email address for safekeeping.
+              {t('emailDescription')}
             </DialogDescription>
           </DialogHeader>
           
@@ -256,7 +266,7 @@ const Navigation = () => {
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email address</FormLabel>
+                    <FormLabel>{t('emailAddress')}</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="your.email@example.com" 
@@ -271,10 +281,10 @@ const Navigation = () => {
               
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEmailDialogOpen(false)}>
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button type="submit" disabled={isSending}>
-                  {isSending ? "Sending..." : "Send Email"}
+                  {isSending ? t('sending') : t('sendEmail')}
                 </Button>
               </DialogFooter>
             </form>

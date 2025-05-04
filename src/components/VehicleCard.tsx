@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Vehicle } from '@/utils/mockData';
 import { CarFront, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import NorwegianPlate from './NorwegianPlate';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -14,6 +16,7 @@ interface VehicleCardProps {
 const VehicleCard = ({ vehicle, onServiceLog }: VehicleCardProps) => {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
+  const { t } = useLanguage();
   
   const handleViewDetails = () => {
     navigate(`/vehicle/${vehicle.id}`);
@@ -58,7 +61,7 @@ const VehicleCard = ({ vehicle, onServiceLog }: VehicleCardProps) => {
           <NorwegianPlate plate={vehicle.plate} />
         </div>
         <p className="mt-2 text-sm text-mechanic-gray/80">
-          Current Mileage: <span className="font-semibold">{vehicle.mileage.toLocaleString()} km</span>
+          {t('currentMileage')}: <span className="font-semibold">{vehicle.mileage.toLocaleString()} km</span>
         </p>
       </CardContent>
       
@@ -69,14 +72,14 @@ const VehicleCard = ({ vehicle, onServiceLog }: VehicleCardProps) => {
           className="flex-1"
           onClick={handleViewDetails}
         >
-          Details
+          {t('details')}
         </Button>
         <Button 
           size="sm" 
           className="flex-1 bg-mechanic-blue hover:bg-mechanic-blue/90"
           onClick={onServiceLog}
         >
-          <Wrench size={16} className="mr-1" /> Log Service
+          <Wrench size={16} className="mr-1" /> {t('logService')}
         </Button>
       </CardFooter>
     </Card>
