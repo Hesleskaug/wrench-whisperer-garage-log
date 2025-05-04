@@ -146,26 +146,47 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         image_url: vehicle.image || null,
         notes: vehicle.notes || null,
         garage_id: garageId,
-        user_id: garageId, // Using garageId as user_id for RLS purposes
+        user_id: garageId, // Using garageId as user_id for consistency
       };
 
       console.log('Saving vehicle with data:', vehicleData);
       
-      // Save to Supabase - use upsert to handle both insert and update
+      // Use insertOrUpdate for more reliable operation
       const { data, error } = await supabase
         .from('vehicles')
-        .upsert(vehicleData)
-        .select();
+        .upsert(vehicleData, { onConflict: 'id' })
+        .select('*')
+        .single();
       
       if (error) {
         console.error('Error saving vehicle to database:', error);
-        throw error;
+        
+        // Fallback to direct insert if upsert fails (sometimes happens with RLS issues)
+        console.log('Attempting direct insert as fallback...');
+        const insertResult = await supabase
+          .from('vehicles')
+          .insert(vehicleData)
+          .select('*')
+          .single();
+          
+        if (insertResult.error) {
+          console.error('Fallback insert also failed:', insertResult.error);
+          throw new Error(`Database error: ${insertResult.error.message}`);
+        }
+        
+        console.log('Fallback insert succeeded:', insertResult.data);
+        return insertResult.data;
       }
       
       console.log('Successfully saved vehicle to database:', data);
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in saveVehicle:', error);
+      
+      // Provide more specific error message
+      const errorMessage = error.message || 'Unknown database error';
+      toast.error(`Failed to save vehicle: ${errorMessage}`);
+      
       throw error;
     }
   };

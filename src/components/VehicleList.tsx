@@ -10,9 +10,10 @@ interface VehicleListProps {
   onAddVehicle: () => void;
   onServiceLog: (vehicle: Vehicle) => void;
   isLoading: boolean;
+  pendingSaves?: string[];
 }
 
-const VehicleList = ({ vehicles, onAddVehicle, onServiceLog, isLoading }: VehicleListProps) => {
+const VehicleList = ({ vehicles, onAddVehicle, onServiceLog, isLoading, pendingSaves = [] }: VehicleListProps) => {
   const { t } = useLanguage();
 
   if (isLoading) {
@@ -47,6 +48,7 @@ const VehicleList = ({ vehicles, onAddVehicle, onServiceLog, isLoading }: Vehicl
           key={vehicle.id} 
           vehicle={vehicle} 
           onServiceLog={() => onServiceLog(vehicle)} 
+          needsSave={pendingSaves.includes(vehicle.id)}
         />
       ))}
     </div>

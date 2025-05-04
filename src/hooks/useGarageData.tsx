@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Vehicle, ServiceLog, mockVehicles as defaultMockVehicles, mockServiceLogs as defaultMockServiceLogs } from "@/utils/mockData";
 import { useGarage } from '@/contexts/GarageContext';
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ export const useGarageData = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSyncAttempt, setLastSyncAttempt] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [pendingSaves, setPendingSaves] = useState<string[]>([]);
 
   // Utility function to validate UUID format
   const isValidUUID = (uuid: string) => {
@@ -26,6 +27,8 @@ export const useGarageData = () => {
       if (!garageId) return;
       
       setIsLoading(true);
+      setSyncError(null);
+      
       try {
         console.log('Loading vehicles for garage ID:', garageId);
         // Try to fetch vehicles from the database
@@ -49,22 +52,7 @@ export const useGarageData = () => {
           
           // Try to save mock vehicles to database one by one for first-time setup
           console.log('Saving mock vehicles to database');
-          let savingErrors = 0;
-          
-          for (const vehicle of mockVehiclesWithValidIds) {
-            try {
-              await saveVehicle(vehicle);
-            } catch (error) {
-              console.error('Failed to save mock vehicle to database:', error);
-              savingErrors++;
-            }
-          }
-          
-          if (savingErrors > 0) {
-            setSyncError(`${savingErrors} vehicles failed to save to database`);
-          } else {
-            setSyncError(null);
-          }
+          await syncAllVehicles(mockVehiclesWithValidIds);
         }
         
         // Load service logs using the fetchServiceLogs method
@@ -99,6 +87,7 @@ export const useGarageData = () => {
     }
   }, [serviceLogs, garageId, syncServiceLogs]);
 
+  // Improved vehicle add function with better error handling
   const handleAddVehicle = async (vehicle: Vehicle) => {
     if (!garageId) {
       toast.error('No active garage. Please create or access a garage first.');
@@ -115,18 +104,34 @@ export const useGarageData = () => {
     setSyncError(null);
     
     try {
-      console.log('Saving vehicle to database:', vehicleWithValidId);
-      // Save directly to the database
-      await saveVehicle(vehicleWithValidId);
+      console.log('Saving new vehicle to database:', vehicleWithValidId);
       
-      // Update our local state
+      // Optimistically update UI
       setVehicles(prev => [...prev, vehicleWithValidId]);
       
-      toast.success('Vehicle saved successfully');
+      // Try saving to the database
+      const result = await saveVehicle(vehicleWithValidId);
+      
+      // Update with the returned data if available
+      if (result && result.id) {
+        // Update local state with the returned data
+        setVehicles(prev => prev.map(v => 
+          v.id === vehicleWithValidId.id ? {
+            ...v,
+            id: result.id // Use the ID from the database
+          } : v
+        ));
+      }
+      
+      toast.success('Vehicle added successfully');
       setLastSyncAttempt(new Date());
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save vehicle:', error);
-      setSyncError('Failed to save to database');
+      setSyncError('Failed to save to database. Please try saving your vehicles again.');
+      
+      // Add to pending saves
+      setPendingSaves(prev => [...prev, vehicleWithValidId.id]);
+      
       toast.error('Could not save vehicle to database');
     } finally {
       setIsSaving(false);
@@ -156,19 +161,24 @@ export const useGarageData = () => {
     setSyncError(null);
     
     try {
-      // Save directly to database
-      await saveVehicle(updatedVehicle);
-      
-      // Update local state
+      // Update local state first for responsive UI
       setVehicles(prev => 
         prev.map(v => v.id === vehicleId ? updatedVehicle : v)
       );
+      
+      // Save to database
+      await saveVehicle(updatedVehicle);
       
       setLastSyncAttempt(new Date());
       console.log('Vehicle mileage updated successfully');
     } catch (error) {
       console.error('Failed to update vehicle mileage in database:', error);
       setSyncError('Failed to update database');
+      
+      // Add to pending saves
+      if (!pendingSaves.includes(vehicleId)) {
+        setPendingSaves(prev => [...prev, vehicleId]);
+      }
       
       toast.error('Could not update vehicle mileage in database');
     } finally {
@@ -194,6 +204,9 @@ export const useGarageData = () => {
       toast.success('Vehicle saved to database successfully');
       setLastSyncAttempt(new Date());
       setSyncError(null);
+      
+      // Remove from pending saves
+      setPendingSaves(prev => prev.filter(id => id !== vehicleId));
     } catch (error) {
       console.error('Manual save failed:', error);
       setSyncError('Save failed. Please try again later.');
@@ -204,8 +217,10 @@ export const useGarageData = () => {
   };
   
   // Function to sync all vehicles to the database
-  const syncAllVehicles = async () => {
-    if (vehicles.length === 0) return;
+  const syncAllVehicles = useCallback(async (vehiclesToSync?: Vehicle[]) => {
+    const vehiclesToProcess = vehiclesToSync || vehicles;
+    
+    if (vehiclesToProcess.length === 0) return;
     
     setIsSaving(true);
     setSyncError(null);
@@ -217,7 +232,7 @@ export const useGarageData = () => {
     try {
       console.log('Saving all vehicles to database');
       // Save each vehicle one by one
-      for (const vehicle of vehicles) {
+      for (const vehicle of vehiclesToProcess) {
         try {
           // Ensure each vehicle has a valid UUID
           const vehicleWithValidId = {
@@ -227,9 +242,18 @@ export const useGarageData = () => {
           
           await saveVehicle(vehicleWithValidId);
           successCount++;
+          
+          // Remove from pending saves
+          setPendingSaves(prev => prev.filter(id => id !== vehicle.id));
         } catch (error: any) {
           console.error(`Failed to sync vehicle ${vehicle.id}:`, error);
           errorCount++;
+          
+          // Add to pending saves if not already there
+          if (!pendingSaves.includes(vehicle.id)) {
+            setPendingSaves(prev => [...prev, vehicle.id]);
+          }
+          
           if (error.message) {
             errorMessages.push(`${vehicle.make} ${vehicle.model}: ${error.message}`);
           }
@@ -256,7 +280,7 @@ export const useGarageData = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [vehicles, saveVehicle, pendingSaves]);
 
   return {
     vehicles,
@@ -265,6 +289,7 @@ export const useGarageData = () => {
     isSaving,
     syncError,
     lastSyncAttempt,
+    pendingSaves,
     handleAddVehicle,
     handleAddServiceLog,
     updateVehicleMileage,

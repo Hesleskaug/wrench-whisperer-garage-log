@@ -9,7 +9,7 @@ import GarageHeader from '@/components/GarageHeader';
 import VehicleList from '@/components/VehicleList';
 import { useGarageData } from '@/hooks/useGarageData';
 import { Button } from "@/components/ui/button";
-import { CloudUpload, AlertCircle, Save, RefreshCw } from "lucide-react";
+import { CloudUpload, AlertCircle, Save, RefreshCw, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
@@ -20,6 +20,7 @@ const Index = () => {
     isLoading, 
     isSaving,
     syncError,
+    pendingSaves,
     lastSyncAttempt,
     handleAddVehicle, 
     handleAddServiceLog,
@@ -82,6 +83,9 @@ const Index = () => {
     }
   };
 
+  // Check if the selected vehicle needs saving
+  const isSelectedVehiclePendingSave = selectedVehicle && pendingSaves?.includes(selectedVehicle.id);
+
   return (
     <div className="container py-8">
       <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
@@ -90,7 +94,12 @@ const Index = () => {
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {syncError}. Please try saving your vehicles again.
+            {syncError} 
+            {pendingSaves && pendingSaves.length > 0 && (
+              <span className="block mt-1">
+                {pendingSaves.length} {pendingSaves.length === 1 ? 'vehicle' : 'vehicles'} pending sync
+              </span>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -101,10 +110,16 @@ const Index = () => {
             {lastSyncAttempt && !isSaving && (
               <span>Last database update: {formatLastSync()}</span>
             )}
+            {pendingSaves && pendingSaves.length > 0 && (
+              <span className="ml-2 text-amber-500 flex items-center">
+                <AlertTriangle size={12} className="mr-1" /> 
+                {pendingSaves.length} unsaved {pendingSaves.length === 1 ? 'vehicle' : 'vehicles'}
+              </span>
+            )}
           </div>
         </div>
         
-        {selectedVehicle && (
+        {(selectedVehicle || pendingSaves?.length > 0) && (
           <Button 
             variant={syncError ? "destructive" : "outline"}
             size="sm" 
@@ -113,7 +128,7 @@ const Index = () => {
             className="flex items-center gap-1 mr-2"
           >
             <Save size={16} className={isSaving ? "animate-spin" : ""} />
-            {isSaving ? "Saving..." : syncError ? "Retry Save" : "Save Vehicle"}
+            {isSaving ? "Saving..." : (isSelectedVehiclePendingSave ? "Save Vehicle" : "Retry Save")}
           </Button>
         )}
         
@@ -134,6 +149,7 @@ const Index = () => {
         onAddVehicle={() => setAddVehicleDialogOpen(true)}
         onServiceLog={handleServiceLog}
         isLoading={isLoading}
+        pendingSaves={pendingSaves}
       />
       
       <AddVehicleForm
