@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import TaskDialog from "./TaskDialog"; // Import the new TaskDialog component
 
 // Define service templates
 const serviceTemplates = {
@@ -126,10 +127,6 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskDescription, setTaskDescription] = useState('');
-  const [taskNotes, setTaskNotes] = useState('');
-  const [taskTools, setTaskTools] = useState<string[]>([]);
-  const [taskTorque, setTaskTorque] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptStore, setReceiptStore] = useState('');
   const [receiptInvoice, setReceiptInvoice] = useState('');
@@ -138,7 +135,6 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
   const [receiptImages, setReceiptImages] = useState<string[]>([]);
   const [receiptNote, setReceiptNote] = useState('');
   const [receiptWebsiteUrl, setReceiptWebsiteUrl] = useState('');
-  const [taskImages, setTaskImages] = useState<string[]>([]);
   
   // New states for enhanced features
   const [parts, setParts] = useState<PartItem[]>([]);
@@ -261,6 +257,39 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
     }
   };
   
+  // Add a task using the new TaskDialog component
+  const addTask = (task: ServiceTask) => {
+    setTasks([...tasks, task]);
+    toast.success("Task added successfully");
+  };
+
+  // Calculate total cost
+  const calculateTotalCost = () => {
+    const partsCost = parts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
+    const laborRate = form.getValues('laborRate') || 0;
+    const laborHours = form.getValues('laborHours') || 0;
+    const laborCost = laborRate * laborHours;
+    
+    return partsCost + laborCost;
+  };
+  
+  // Toggle voice recording for description
+  const toggleVoiceRecording = () => {
+    // This would be implemented with the Web Speech API in a real app
+    setIsRecording(!isRecording);
+    if (isRecording) {
+      toast.info("Voice recording feature would save transcript to description field");
+    } else {
+      toast.info("Voice recording started (simulated)");
+    }
+  };
+  
+  // Copy reference value to clipboard
+  const copyToClipboard = (value: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success("Copied to clipboard");
+  };
+  
   // Add a new part row
   const addPart = () => {
     const newPart: PartItem = {
@@ -309,392 +338,32 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
     setChecklist(checklist.filter(item => item.id !== id));
   };
   
-  // Add a task
-  const addTask = () => {
-    const newTask: ServiceTask = {
-      id: `task-${Date.now()}`,
-      description: taskDescription,
-      completed: true,
-      notes: taskNotes || undefined,
-      toolsRequired: taskTools.length > 0 ? taskTools : undefined,
-      torqueSpec: taskTorque || undefined,
-      receipt: showReceipt ? {
-        store: receiptStore,
-        invoiceNumber: receiptInvoice || undefined,
-        date: receiptDate || undefined,
-        amount: receiptAmount || undefined,
-        images: receiptImages.length > 0 ? [...receiptImages] : undefined,
-        note: receiptNote || undefined,
-        websiteUrl: receiptWebsiteUrl || undefined
-      } : undefined,
-      images: taskImages.length > 0 ? [...taskImages] : undefined,
-    };
-    
-    setTasks([...tasks, newTask]);
-    
-    // Reset form fields
-    setTaskDescription('');
-    setTaskNotes('');
-    setTaskTorque('');
-    setTaskTools([]);
-    setTaskImages([]);
-    setShowReceipt(false);
-    setReceiptStore('');
-    setReceiptInvoice('');
-    setReceiptDate('');
-    setReceiptAmount(undefined);
-    setReceiptImages([]);
-    setReceiptNote('');
-    setReceiptWebsiteUrl('');
-    setTaskDialogOpen(false);
-  };
-  
   // Handle receipt data changes
   const handleReceiptDataChange = (data: { note: string; websiteUrl: string }) => {
     setReceiptNote(data.note);
     setReceiptWebsiteUrl(data.websiteUrl);
   };
-  
-  // Calculate total cost
-  const calculateTotalCost = () => {
-    const partsCost = parts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
-    const laborRate = form.getValues('laborRate') || 0;
-    const laborHours = form.getValues('laborHours') || 0;
-    const laborCost = laborRate * laborHours;
-    
-    return partsCost + laborCost;
-  };
-  
-  // Toggle voice recording for description
-  const toggleVoiceRecording = () => {
-    // This would be implemented with the Web Speech API in a real app
-    setIsRecording(!isRecording);
-    if (isRecording) {
-      toast.info("Voice recording feature would save transcript to description field");
-    } else {
-      toast.info("Voice recording started (simulated)");
-    }
-  };
-  
-  // Copy reference value to clipboard
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value);
-    toast.success("Copied to clipboard");
-  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-mechanic-blue">Log New Service</DialogTitle>
-          <DialogDescription>
-            Enter the details of the service performed on this vehicle.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-mechanic-blue">Log New Service</DialogTitle>
+            <DialogDescription>
+              Enter the details of the service performed on this vehicle.
+            </DialogDescription>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() // Only disable future dates, allow past dates
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="mileage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Current Mileage (km)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="serviceType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service Type</FormLabel>
-                  <Select 
-                    onValueChange={handleServiceTypeChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a service type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="oil-change">Oil Change</SelectItem>
-                      <SelectItem value="brake-pads">Brake Pads</SelectItem>
-                      <SelectItem value="tire-swap">Tire Swap</SelectItem>
-                      <SelectItem value="custom">Custom Service</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Description</FormLabel>
-                    <Button 
-                      type="button" 
-                      size="icon" 
-                      variant="ghost" 
-                      className="md:hidden" 
-                      onClick={toggleVoiceRecording}
-                    >
-                      <Mic className={cn(isRecording ? "text-red-500" : "text-gray-500")} />
-                    </Button>
-                  </div>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="e.g. Changed oil and filter" 
-                      className="resize-none" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Parts Used - Repeatable rows */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Parts Used</Label>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={addPart}
-                  className="flex items-center gap-1"
-                >
-                  <Plus size={16} /> Add Part
-                </Button>
-              </div>
-              
-              {parts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No parts added yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {parts.map((part) => (
-                    <div key={part.id} className="flex items-center gap-2">
-                      <Input
-                        value={part.name}
-                        onChange={(e) => updatePart(part.id, 'name', e.target.value)}
-                        placeholder="Part name"
-                        className="flex-grow"
-                      />
-                      <Input
-                        type="number"
-                        value={part.quantity}
-                        onChange={(e) => updatePart(part.id, 'quantity', parseInt(e.target.value) || 0)}
-                        placeholder="Qty"
-                        className="w-16"
-                      />
-                      <Input
-                        type="number"
-                        value={part.price}
-                        onChange={(e) => updatePart(part.id, 'price', parseFloat(e.target.value) || 0)}
-                        placeholder="Price"
-                        className="w-24"
-                      />
-                      <Button 
-                        type="button" 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => removePart(part.id)}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Labor inputs */}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="laborHours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Labor Hours</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.5" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="laborRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Labor Rate (per hour)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {/* Total cost summary */}
-            <div className="bg-gray-50 p-3 rounded-md">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Total Cost:</span>
-                <span className="text-lg font-bold">{calculateTotalCost().toFixed(2)}</span>
-              </div>
-            </div>
-            
-            {/* Checklist */}
-            <div>
-              <Label>Checklist</Label>
-              <div className="mt-2 space-y-2">
-                {checklist.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={item.checked}
-                      onCheckedChange={(checked) => 
-                        updateChecklistItem(item.id, checked === true)
-                      }
-                      id={`checklist-${item.id}`}
-                    />
-                    <Label htmlFor={`checklist-${item.id}`} className="flex-grow">
-                      {item.text}
-                    </Label>
-                    <Button 
-                      type="button" 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => removeChecklistItem(item.id)}
-                    >
-                      <X size={16} />
-                    </Button>
-                  </div>
-                ))}
-                
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newChecklistItem}
-                    onChange={(e) => setNewChecklistItem(e.target.value)}
-                    placeholder="Add new checklist item"
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon" 
-                    variant="outline" 
-                    onClick={addChecklistItem}
-                  >
-                    <Plus size={16} />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Attachments */}
-            <div>
-              <Label>Attachments</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button type="button" variant="outline" className="flex items-center gap-1">
-                  <Upload size={16} /> Upload
-                </Button>
-                <Button type="button" variant="outline" className="flex items-center gap-1">
-                  <Camera size={16} /> Camera
-                </Button>
-                
-                {attachments.length > 0 && (
-                  <div className="w-full mt-2 grid grid-cols-4 gap-2">
-                    {/* Attachment thumbnails would go here */}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Next Due Reminder */}
-            <div className="border p-3 rounded-md bg-gray-50">
-              <div className="flex items-center gap-1 mb-3">
-                <Clock size={16} />
-                <Label>Next Service Due</Label>
-              </div>
-              
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="nextDueMileage"
+                  name="date"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Next Due (+km)</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="nextDueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Next Due Date</FormLabel>
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -720,7 +389,7 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) =>
-                              date < new Date() // Only allow future dates
+                              date > new Date() // Only disable future dates, allow past dates
                             }
                             initialFocus
                           />
@@ -730,199 +399,398 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={form.control}
+                  name="mileage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Mileage (km)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            </div>
-            
-            {/* Reference information */}
-            {serviceReferences.length > 0 && (
-              <div className="border-t pt-3">
-                <Label className="text-sm text-muted-foreground">Reference Information</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {serviceReferences.map((ref, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="outline" 
-                      className="flex items-center gap-1 cursor-pointer hover:bg-gray-100"
-                      onClick={() => copyToClipboard(ref.value)}
-                    >
-                      {ref.label}: {ref.value}
-                      <Copy size={12} />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            <DialogFooter className="pt-4 flex flex-wrap gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-mechanic-blue hover:bg-mechanic-blue/90"
-                disabled={isSubmitting}
-              >
-                <Save size={16} className="mr-1" />
-                {isSubmitting ? "Adding..." : "Save"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="secondary"
-                disabled={isSubmitting}
-                onClick={() => form.handleSubmit((data) => onSubmit(data, true))()}
-              >
-                <Save size={16} className="mr-1" />
-                Save & Create Another
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-      
-      <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add Service Task</DialogTitle>
-            <DialogDescription>
-              Add details about a specific task performed during this service.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="task-description">Description</Label>
-              <Input
-                id="task-description"
-                placeholder="e.g. Changed oil"
-                value={taskDescription}
-                onChange={(e) => setTaskDescription(e.target.value)}
+              <FormField
+                control={form.control}
+                name="serviceType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Type</FormLabel>
+                    <Select 
+                      onValueChange={handleServiceTypeChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a service type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="oil-change">Oil Change</SelectItem>
+                        <SelectItem value="brake-pads">Brake Pads</SelectItem>
+                        <SelectItem value="tire-swap">Tire Swap</SelectItem>
+                        <SelectItem value="custom">Custom Service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="task-notes">Notes</Label>
-              <Textarea
-                id="task-notes"
-                placeholder="e.g. Used synthetic oil"
-                value={taskNotes}
-                onChange={(e) => setTaskNotes(e.target.value)}
-                className="resize-none"
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Description</FormLabel>
+                      <Button 
+                        type="button" 
+                        size="icon" 
+                        variant="ghost" 
+                        className="md:hidden" 
+                        onClick={toggleVoiceRecording}
+                      >
+                        <Mic className={cn(isRecording ? "text-red-500" : "text-gray-500")} />
+                      </Button>
+                    </div>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="e.g. Changed oil and filter" 
+                        className="resize-none" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="task-tools">Tools Required (comma separated)</Label>
-              <Input
-                id="task-tools"
-                placeholder="e.g. 17mm socket, wrench"
-                value={taskTools.join(', ')}
-                onChange={(e) => setTaskTools(e.target.value.split(',').map(tool => tool.trim()))}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="task-torque">Torque Specification</Label>
-              <Input
-                id="task-torque"
-                placeholder="e.g. 25 Nm"
-                value={taskTorque}
-                onChange={(e) => setTaskTorque(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="task-images">Task Images</Label>
-              <TaskImageUploader 
-                images={taskImages} 
-                onImagesChange={setTaskImages} 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="receipt" className="flex items-center gap-1">
-                  <Receipt size={16} />
-                  Receipt Information
-                </Label>
-                <Button variant="secondary" size="sm" onClick={() => setShowReceipt(!showReceipt)}>
-                  {showReceipt ? 'Hide Receipt' : 'Add Receipt'}
-                </Button>
+              
+              {/* Parts Used - Repeatable rows */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Parts Used</Label>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={addPart}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus size={16} /> Add Part
+                  </Button>
+                </div>
+                
+                {parts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No parts added yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {parts.map((part) => (
+                      <div key={part.id} className="flex items-center gap-2">
+                        <Input
+                          value={part.name}
+                          onChange={(e) => updatePart(part.id, 'name', e.target.value)}
+                          placeholder="Part name"
+                          className="flex-grow"
+                        />
+                        <Input
+                          type="number"
+                          value={part.quantity}
+                          onChange={(e) => updatePart(part.id, 'quantity', parseInt(e.target.value) || 0)}
+                          placeholder="Qty"
+                          className="w-16"
+                        />
+                        <Input
+                          type="number"
+                          value={part.price}
+                          onChange={(e) => updatePart(part.id, 'price', parseFloat(e.target.value) || 0)}
+                          placeholder="Price"
+                          className="w-24"
+                        />
+                        <Button 
+                          type="button" 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={() => removePart(part.id)}
+                        >
+                          <X size={16} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
-              {showReceipt && (
-                <div className="mt-2 space-y-4 p-3 border rounded-md bg-gray-50">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="receiptStore">Store Name</Label>
-                      <Input
-                        id="receiptStore"
-                        placeholder="Store Name"
-                        value={receiptStore}
-                        onChange={(e) => setReceiptStore(e.target.value)}
+              {/* Labor inputs */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="laborHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Labor Hours</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.5" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="laborRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Labor Rate (per hour)</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* Total cost summary */}
+              <div className="bg-gray-50 p-3 rounded-md">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Total Cost:</span>
+                  <span className="text-lg font-bold">{calculateTotalCost().toFixed(2)}</span>
+                </div>
+              </div>
+              
+              {/* Checklist */}
+              <div>
+                <Label>Checklist</Label>
+                <div className="mt-2 space-y-2">
+                  {checklist.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={item.checked}
+                        onCheckedChange={(checked) => 
+                          updateChecklistItem(item.id, checked === true)
+                        }
+                        id={`checklist-${item.id}`}
                       />
+                      <Label htmlFor={`checklist-${item.id}`} className="flex-grow">
+                        {item.text}
+                      </Label>
+                      <Button 
+                        type="button" 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => removeChecklistItem(item.id)}
+                      >
+                        <X size={16} />
+                      </Button>
                     </div>
-                    <div>
-                      <Label htmlFor="receiptInvoice">Invoice Number</Label>
-                      <Input
-                        id="receiptInvoice"
-                        placeholder="Invoice Number"
-                        value={receiptInvoice}
-                        onChange={(e) => setReceiptInvoice(e.target.value)}
-                      />
-                    </div>
-                  </div>
+                  ))}
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="receiptDate">Date</Label>
-                      <Input
-                        id="receiptDate"
-                        placeholder="YYYY-MM-DD"
-                        value={receiptDate}
-                        onChange={(e) => setReceiptDate(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="receiptAmount">Amount</Label>
-                      <Input
-                        id="receiptAmount"
-                        type="number"
-                        placeholder="Amount"
-                        value={receiptAmount || ''}
-                        onChange={(e) => setReceiptAmount(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="receipt-images">Receipt Images</Label>
-                    <TaskImageUploader 
-                      images={receiptImages} 
-                      onImagesChange={setReceiptImages}
-                      title="Upload"
-                      isReceiptMode={true}
-                      onReceiptDataChange={handleReceiptDataChange}
-                      initialReceiptData={{ note: receiptNote, websiteUrl: receiptWebsiteUrl }}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newChecklistItem}
+                      onChange={(e) => setNewChecklistItem(e.target.value)}
+                      placeholder="Add new checklist item"
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
                     />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={addChecklistItem}
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Attachments */}
+              <div>
+                <Label>Attachments</Label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" className="flex items-center gap-1">
+                    <Upload size={16} /> Upload
+                  </Button>
+                  <Button type="button" variant="outline" className="flex items-center gap-1">
+                    <Camera size={16} /> Camera
+                  </Button>
+                  
+                  {attachments.length > 0 && (
+                    <div className="w-full mt-2 grid grid-cols-4 gap-2">
+                      {/* Attachment thumbnails would go here */}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Next Due Reminder */}
+              <div className="border p-3 rounded-md bg-gray-50">
+                <div className="flex items-center gap-1 mb-3">
+                  <Clock size={16} />
+                  <Label>Next Service Due</Label>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="nextDueMileage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Next Due (+km)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="nextDueDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Next Due Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) =>
+                                date < new Date() // Only allow future dates
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              {/* Service Tasks Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Service Tasks</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTaskDialogOpen(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus size={16} /> Add Task
+                  </Button>
+                </div>
+
+                {tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tasks added yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.map((task) => (
+                      <div key={task.id} className="p-3 border rounded-md bg-gray-50">
+                        <p className="font-medium">{task.description}</p>
+                        {task.toolsRequired && task.toolsRequired.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {task.toolsRequired.map((tool, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {tool}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Reference information */}
+              {serviceReferences.length > 0 && (
+                <div className="border-t pt-3">
+                  <Label className="text-sm text-muted-foreground">Reference Information</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {serviceReferences.map((ref, index) => (
+                      <Badge 
+                        key={index} 
+                        variant="outline" 
+                        className="flex items-center gap-1 cursor-pointer hover:bg-gray-100"
+                        onClick={() => copyToClipboard(ref.value)}
+                      >
+                        {ref.label}: {ref.value}
+                        <Copy size={12} />
+                      </Badge>
+                    ))}
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setTaskDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={addTask}>Add Task</Button>
-          </DialogFooter>
+
+              <DialogFooter className="pt-4 flex flex-wrap gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-mechanic-blue hover:bg-mechanic-blue/90"
+                  disabled={isSubmitting}
+                >
+                  <Save size={16} className="mr-1" />
+                  {isSubmitting ? "Adding..." : "Save"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  disabled={isSubmitting}
+                  onClick={() => form.handleSubmit((data) => onSubmit(data, true))()}
+                >
+                  <Save size={16} className="mr-1" />
+                  Save & Create Another
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
-    </Dialog>
+      
+      {/* Use our new TaskDialog component */}
+      <TaskDialog 
+        open={taskDialogOpen} 
+        onOpenChange={setTaskDialogOpen} 
+        onAddTask={addTask} 
+      />
+    </>
   );
 };
 

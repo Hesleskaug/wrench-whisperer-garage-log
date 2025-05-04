@@ -1,4 +1,3 @@
-
 export interface Vehicle {
   id: string;
   make: string;
@@ -41,9 +40,11 @@ export interface ServiceLog {
   mileage: number;
   serviceType: string;
   description: string;
-  parts?: string[];
-  cost?: number;
-  tasks?: ServiceTask[];
+  parts: string[];
+  cost: number;
+  tasks: ServiceTask[];
+  nextDueMileage?: number; // Add this field to fix the build error
+  nextDueDate?: string;    // Add this field to fix the build error
 }
 
 export interface VehicleSpecs {
