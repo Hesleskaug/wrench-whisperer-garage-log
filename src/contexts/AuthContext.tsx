@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,14 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Fix TypeScript error by ensuring data shape matches what the API expects
-      // The type error is happening because we're trying to update fields that 
-      // should be excluded or handled differently by the API
-      const { id, created_at, updated_at, ...updateData } = data as any;
+      // Get a strongly typed reference to the profiles table
+      const profilesRef = supabase.from('profiles');
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
+      // Use the typed reference for the update operation
+      const { error } = await profilesRef
+        .update({ username: data.username })
         .eq('id', state.user.id);
       
       if (error) throw error;
