@@ -123,6 +123,11 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
       // Adding a small delay to simulate an API call
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      // Store any additional vehicle details from the API lookup
+      if (vehicleDetails) {
+        localStorage.setItem(`vehicle_details_${newVehicle.id}`, JSON.stringify(vehicleDetails));
+      }
+      
       onAddVehicle(newVehicle);
       toast.success("Vehicle added successfully");
       form.reset();

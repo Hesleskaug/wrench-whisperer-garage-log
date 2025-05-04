@@ -7,10 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import ServiceHistoryTable from "@/components/ServiceHistoryTable";
 import ServiceLogForm from "@/components/ServiceLogForm";
 import VehicleSpecsCard from "@/components/VehicleSpecsCard";
-import { ArrowLeft, Wrench, CarFront, FileText } from "lucide-react";
+import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle } from "lucide-react";
 import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/mockData";
 import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
+import { Badge } from "@/components/ui/badge";
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,19 @@ const VehicleDetails = () => {
   const [communitySpecs, setCommunitySpecs] = useState<VehicleSpecs | undefined>();
   const [serviceLogDialogOpen, setServiceLogDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  // New state for vehicle details from the API
+  const [vehicleDetails, setVehicleDetails] = useState<any>(null);
+
+  // Format date for better display
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "N/A";
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
   useEffect(() => {
     if (!garageId) {
@@ -45,6 +59,12 @@ const VehicleDetails = () => {
     
     if (foundVehicle) {
       setVehicle(foundVehicle);
+
+      // Check for additional vehicle details that might be saved
+      const storedVehicleDetails = localStorage.getItem(`vehicle_details_${foundVehicle.id}`);
+      if (storedVehicleDetails) {
+        setVehicleDetails(JSON.parse(storedVehicleDetails));
+      }
       
       // Find vehicle specs (still using mock data for now)
       const vehicleSpecs = mockVehicleSpecs.find(s => s.vehicleId === id);
@@ -167,6 +187,71 @@ const VehicleDetails = () => {
                   <span className="font-medium">{vehicle.mileage.toLocaleString()} km</span>
                 </div>
               </div>
+              
+              {/* New technical specifications section */}
+              {vehicleDetails && (
+                <div className="mt-5 pt-4 border-t border-gray-200">
+                  <h3 className="font-semibold text-mechanic-blue mb-2 flex items-center">
+                    <Wrench size={16} className="mr-1" /> Technical Specifications
+                  </h3>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-mechanic-gray">Engine</span>
+                      <span className="font-medium">{vehicleDetails.engineSize ? `${vehicleDetails.engineSize}cc` : "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-mechanic-gray">Power</span>
+                      <span className="font-medium">{vehicleDetails.enginePower ? `${vehicleDetails.enginePower} kW` : "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-mechanic-gray">Fuel Type</span>
+                      <span className="font-medium">{vehicleDetails.fuelType || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-mechanic-gray">Transmission</span>
+                      <span className="font-medium">{vehicleDetails.transmission || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-mechanic-gray">Engine Code</span>
+                      <span className="font-medium">{vehicleDetails.engineCode || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-mechanic-gray">Weight</span>
+                      <span className="font-medium">{vehicleDetails.weight ? `${vehicleDetails.weight}kg` : "N/A"}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Highlighted inspection information */}
+                  <div className="mt-4 p-3 bg-amber-50 rounded-md border border-amber-200">
+                    <h4 className="font-medium text-amber-800 flex items-center mb-2">
+                      <Calendar size={16} className="mr-1" /> Inspection Dates
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-amber-700">Inspection Due</span>
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800">
+                          {vehicleDetails.inspectionDue ? formatDate(vehicleDetails.inspectionDue) : "N/A"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-amber-700">Last Inspection</span>
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800">
+                          {vehicleDetails.lastInspection ? formatDate(vehicleDetails.lastInspection) : "N/A"}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* Alert for upcoming inspection */}
+                    {vehicleDetails.inspectionDue && new Date(vehicleDetails.inspectionDue) < new Date(new Date().setMonth(new Date().getMonth() + 2)) && (
+                      <div className="flex items-center mt-2 pt-2 border-t border-amber-200 text-xs text-red-700 gap-1">
+                        <AlertTriangle size={12} />
+                        <span>Inspection due soon</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               <Button 
                 className="w-full mt-6 bg-mechanic-blue hover:bg-mechanic-blue/90"
