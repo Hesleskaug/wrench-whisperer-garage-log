@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ const VehicleDetails = () => {
   const [vehicle, setVehicle] = useState<Vehicle | undefined>();
   const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
   const [specs, setSpecs] = useState<VehicleSpecs | undefined>();
+  const [communitySpecs, setCommunitySpecs] = useState<VehicleSpecs | undefined>();
   const [serviceLogDialogOpen, setServiceLogDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -41,12 +43,31 @@ const VehicleDetails = () => {
     const vehicleLogs = logs.filter((log: ServiceLog) => log.vehicleId === id);
     setServiceLogs(vehicleLogs);
     
-    // Find vehicle specs (still using mock data for now)
-    const vehicleSpecs = mockVehicleSpecs.find(s => s.vehicleId === id);
-    
     if (foundVehicle) {
       setVehicle(foundVehicle);
+      
+      // Find vehicle specs (still using mock data for now)
+      const vehicleSpecs = mockVehicleSpecs.find(s => s.vehicleId === id);
       setSpecs(vehicleSpecs);
+      
+      // Simulate finding "community" specs based on make and model
+      // In a real app, this would come from a database of community-contributed specs
+      if (foundVehicle) {
+        // Look for other mock specs with same make/model but different vehicle ID
+        const similarVehicleSpecs = mockVehicleSpecs.find(s => 
+          s.vehicleId !== id && 
+          mockVehicleSpecs.find(vs => vs.vehicleId === s.vehicleId)?.make === foundVehicle.make &&
+          mockVehicleSpecs.find(vs => vs.vehicleId === s.vehicleId)?.model === foundVehicle.model
+        );
+        
+        // If we don't have specific specs for this vehicle but found community specs
+        if (!vehicleSpecs && similarVehicleSpecs) {
+          setCommunitySpecs(similarVehicleSpecs);
+          toast.info("Using community-provided specifications for this vehicle model", {
+            duration: 5000
+          });
+        }
+      }
     } else {
       toast.error("Vehicle not found");
       navigate('/');
@@ -172,7 +193,13 @@ const VehicleDetails = () => {
             </TabsContent>
             
             <TabsContent value="specs" className="mt-0">
-              <VehicleSpecsCard specs={specs} />
+              {specs ? (
+                <VehicleSpecsCard specs={specs} isCommunityData={false} />
+              ) : communitySpecs ? (
+                <VehicleSpecsCard specs={communitySpecs} isCommunityData={true} />
+              ) : (
+                <VehicleSpecsCard specs={undefined} />
+              )}
             </TabsContent>
           </Tabs>
         </div>

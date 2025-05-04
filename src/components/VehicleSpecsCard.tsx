@@ -1,11 +1,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VehicleSpecs } from "@/utils/mockData";
-import { Wrench, Info } from "lucide-react";
+import { Wrench, Info, Users } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VehicleSpecsCardProps {
   specs: VehicleSpecs | undefined;
+  isCommunityData?: boolean;
 }
 
 // Helper component for displaying spec items with tooltips for additional info
@@ -14,21 +16,23 @@ const SpecItem = ({ label, value, tooltip }: { label: string; value: string; too
     <div className="flex items-center gap-1">
       <p className="text-sm text-mechanic-gray">{label}</p>
       {tooltip && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info size={14} className="text-mechanic-gray/70 cursor-help" />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="w-[200px] text-xs">{tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info size={14} className="text-mechanic-gray/70 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="w-[200px] text-xs">{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </div>
     <p className="font-medium">{value}</p>
   </div>
 );
 
-const VehicleSpecsCard = ({ specs }: VehicleSpecsCardProps) => {
+const VehicleSpecsCard = ({ specs, isCommunityData = false }: VehicleSpecsCardProps) => {
   if (!specs) {
     return (
       <Card className="h-full">
@@ -149,9 +153,33 @@ const VehicleSpecsCard = ({ specs }: VehicleSpecsCardProps) => {
       <CardHeader>
         <CardTitle className="text-lg flex items-center">
           <Wrench size={18} className="mr-2" /> Vehicle Specifications
+          {isCommunityData && (
+            <div className="ml-auto">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">
+                    <Users size={12} />
+                    <span>Community Data</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="w-[250px] text-xs">These specifications were provided by the community based on similar vehicles</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {isCommunityData && (
+          <Alert variant="warning" className="mb-4 bg-amber-50">
+            <AlertDescription className="text-xs">
+              <strong>Community Information:</strong> These specifications are shared by other users with the same make and model. 
+              Always verify with your vehicle's manual or a professional mechanic before performing maintenance.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-6">
           <div>
             <h3 className="text-sm font-semibold text-mechanic-blue mb-2 border-b pb-1">Engine</h3>
