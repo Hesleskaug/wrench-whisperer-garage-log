@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
-import { Vehicle } from '@/utils/mockData';
+import { Vehicle, ServiceLog } from '@/utils/mockData';
 
 interface GarageContextType {
   garageId: string | null;
@@ -13,6 +13,8 @@ interface GarageContextType {
   leaveGarage: () => void;
   syncVehicles: (vehicles: Vehicle[]) => Promise<void>;
   fetchVehicles: () => Promise<Vehicle[]>;
+  syncServiceLogs: (serviceLogs: ServiceLog[]) => void;
+  fetchServiceLogs: () => ServiceLog[];
 }
 
 const GarageContext = createContext<GarageContextType | undefined>(undefined);
@@ -57,6 +59,26 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     toast.success('Exited garage successfully');
   };
 
+  // Function to sync service logs to localStorage
+  const syncServiceLogs = (serviceLogs: ServiceLog[]) => {
+    if (!garageId) {
+      console.error('No garage ID available');
+      return;
+    }
+    localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(serviceLogs));
+  };
+
+  // Function to fetch service logs from localStorage
+  const fetchServiceLogs = (): ServiceLog[] => {
+    if (!garageId) {
+      console.error('No garage ID available');
+      return [];
+    }
+    
+    const storedLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+    return storedLogs ? JSON.parse(storedLogs) : [];
+  };
+
   // Function to save vehicles to Supabase
   const syncVehicles = async (vehicles: Vehicle[]) => {
     if (!garageId) {
@@ -73,9 +95,12 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       
       // Then insert the new vehicles
       if (vehicles.length > 0) {
-        // Ensure all vehicles have valid UUIDs before inserting
+        // Generate a UUID for the user_id once
+        const generatedUserId = uuidv4();
+        
+        // Ensure all vehicles have valid UUIDs and format correctly
         const vehiclesToInsert = vehicles.map(vehicle => ({
-          id: vehicle.id.includes('-') ? vehicle.id : uuidv4(), // Ensure ID is a UUID
+          id: vehicle.id && vehicle.id.includes('-') ? vehicle.id : uuidv4(),
           make: vehicle.make,
           model: vehicle.model,
           year: vehicle.year,
@@ -85,7 +110,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           image_url: vehicle.image || null,
           notes: vehicle.notes || null,
           garage_id: garageId,
-          user_id: 'anonymous', // Using a placeholder since we don't have actual user authentication
+          user_id: generatedUserId, // Use the generated UUID instead of 'anonymous'
         }));
         
         const { error } = await supabase
@@ -136,7 +161,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           vin: record.vin || undefined,
           image: record.image_url || undefined,
           notes: record.notes || undefined,
-          // Map any other necessary fields
         }));
       }
       
@@ -155,7 +179,9 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     accessGarage,
     leaveGarage,
     syncVehicles,
-    fetchVehicles
+    fetchVehicles,
+    syncServiceLogs,
+    fetchServiceLogs
   };
 
   return <GarageContext.Provider value={value}>{children}</GarageContext.Provider>;

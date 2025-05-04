@@ -12,7 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { garageId, syncVehicles, fetchVehicles } = useGarage();
+  const { garageId, syncVehicles, fetchVehicles, syncServiceLogs, fetchServiceLogs } = useGarage();
   const { t } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
@@ -21,7 +21,7 @@ const Index = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Load vehicles from Supabase based on garage ID
+  // Load vehicles and service logs when garage ID changes
   useEffect(() => {
     const loadVehicles = async () => {
       if (!garageId) return;
@@ -55,29 +55,36 @@ const Index = () => {
           }
         }
         
-        // Load service logs from localStorage (we'll keep this in localStorage for now)
-        const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
-        setServiceLogs(storedServiceLogs ? JSON.parse(storedServiceLogs) : defaultMockServiceLogs);
+        // Load service logs using the new fetchServiceLogs method
+        const storedServiceLogs = fetchServiceLogs();
+        if (storedServiceLogs.length > 0) {
+          setServiceLogs(storedServiceLogs);
+        } else {
+          // If no service logs, use mock data and save it
+          setServiceLogs(defaultMockServiceLogs);
+          syncServiceLogs(defaultMockServiceLogs);
+        }
       } catch (error) {
         console.error('Error loading vehicles:', error);
         toast.error('Failed to load your vehicles');
         
         // Fallback to mock data
         setVehicles(defaultMockVehicles);
+        setServiceLogs(defaultMockServiceLogs);
       } finally {
         setIsLoading(false);
       }
     };
     
     loadVehicles();
-  }, [garageId, fetchVehicles, syncVehicles]);
+  }, [garageId, fetchVehicles, syncVehicles, fetchServiceLogs, syncServiceLogs]);
   
-  // Save service logs to localStorage when they change
+  // Save service logs when they change
   useEffect(() => {
-    if (garageId) {
-      localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(serviceLogs));
+    if (garageId && serviceLogs.length > 0) {
+      syncServiceLogs(serviceLogs);
     }
-  }, [serviceLogs, garageId]);
+  }, [serviceLogs, garageId, syncServiceLogs]);
 
   const handleAddVehicle = async (vehicle: Vehicle) => {
     const updatedVehicles = [...vehicles, vehicle];
