@@ -188,7 +188,7 @@ const VehicleDetails = () => {
                 </div>
               </div>
               
-              {/* New technical specifications section */}
+              {/* Technical specifications section */}
               {vehicleDetails && (
                 <div className="mt-5 pt-4 border-t border-gray-200">
                   <h3 className="font-semibold text-mechanic-blue mb-2 flex items-center">
@@ -283,11 +283,11 @@ const VehicleDetails = () => {
             
             <TabsContent value="specs" className="mt-0">
               {specs ? (
-                <VehicleSpecsCard specs={specs} isCommunityData={false} />
+                <VehicleSpecsCard specs={specs} isCommunityData={false} vehicleDetails={vehicleDetails} />
               ) : communitySpecs ? (
-                <VehicleSpecsCard specs={communitySpecs} isCommunityData={true} />
+                <VehicleSpecsCard specs={communitySpecs} isCommunityData={true} vehicleDetails={vehicleDetails} />
               ) : (
-                <VehicleSpecsCard specs={undefined} />
+                <VehicleSpecsCard specs={undefined} vehicleDetails={vehicleDetails} />
               )}
             </TabsContent>
           </Tabs>
