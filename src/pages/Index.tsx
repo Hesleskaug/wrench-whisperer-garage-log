@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
@@ -69,6 +70,16 @@ const Index = () => {
     
     // Otherwise show the time
     return lastSyncAttempt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Define handleRetry function using the existing retrySave function
+  const handleRetry = () => {
+    if (selectedVehicle) {
+      retrySave(selectedVehicle.id);
+    } else {
+      // If no vehicle is selected, sync all vehicles instead
+      syncAllVehicles();
+    }
   };
 
   return (
