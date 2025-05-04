@@ -5,12 +5,25 @@ import { useGarage } from '@/contexts/GarageContext';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
-import { ArrowLeft, Copy } from 'lucide-react';
+import { ArrowLeft, Copy, Mail } from 'lucide-react';
+import { useForm } from "react-hook-form";
+import { supabase } from "@/integrations/supabase/client";
 
 const UserSettings = () => {
   const { garageId, loading, leaveGarage } = useGarage();
   const navigate = useNavigate();
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  
+  const form = useForm({
+    defaultValues: {
+      email: '',
+    },
+  });
   
   // Redirect if no garage ID is present
   if (!loading && !garageId) {
@@ -27,6 +40,28 @@ const UserSettings = () => {
   const handleExitGarage = async () => {
     leaveGarage();
     navigate('/garage');
+  };
+  
+  const handleSendEmail = async (values: { email: string }) => {
+    if (!garageId) return;
+    
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-garage-id', {
+        body: { email: values.email, garageId }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Garage ID sent to your email');
+      setEmailDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
   
   if (loading) {
@@ -75,6 +110,14 @@ const UserSettings = () => {
                 <p className="text-xs text-muted-foreground mt-2">
                   Save this ID to access your garage again in the future. Without it, you won't be able to access your data.
                 </p>
+                
+                <Button 
+                  variant="outline" 
+                  className="mt-4 flex gap-2"
+                  onClick={() => setEmailDialogOpen(true)}
+                >
+                  <Mail size={16} /> Email My Garage ID
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -146,6 +189,56 @@ const UserSettings = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Email your Garage ID</DialogTitle>
+            <DialogDescription>
+              Send your Garage ID to your email address for safekeeping.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSendEmail)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                rules={{ 
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address"
+                  }
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email address</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="your.email@example.com" 
+                        type="email" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSending}>
+                  {isSending ? "Sending..." : "Send Email"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

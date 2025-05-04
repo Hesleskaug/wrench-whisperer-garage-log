@@ -1,5 +1,31 @@
 
 project_id = "zahnqwnyoezdnuccryqm"
 
-[functions.delete_user]
-verify_jwt = true
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[auth]
+enabled = true
+port = 54325
+
+[storage]
+enabled = true
+port = 54326
+
+[analytics]
+enabled = false
+port = 54327
+
+[functions.send-garage-id]
+verify_jwt = false
