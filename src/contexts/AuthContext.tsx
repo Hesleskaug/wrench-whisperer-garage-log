@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -158,14 +157,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Fix the TypeScript error by explicitly typing the update object
-      const updates = {
-        username: data.username || null
-      };
-      
+      // Fix the TypeScript error by using a properly typed update object
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update({
+          username: data.username || null
+        })
         .eq('id', state.user.id);
       
       if (error) throw error;
