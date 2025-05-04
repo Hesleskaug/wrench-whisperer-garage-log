@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useGarage } from '@/contexts/GarageContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from "@/components/ui/button";
-import LanguageSwitcher from './LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,8 +95,6 @@ const Navigation = () => {
             {t('garage')}
           </Link>
           
-          <LanguageSwitcher className="mr-2" />
-          
           {garageId ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -172,11 +169,6 @@ const Navigation = () => {
               >
                 {t('garage')}
               </Link>
-              
-              <div className="flex items-center py-2">
-                <span className="text-mechanic-gray mr-3">{t('language')}:</span>
-                <LanguageSwitcher />
-              </div>
               
               {garageId ? (
                 <>
