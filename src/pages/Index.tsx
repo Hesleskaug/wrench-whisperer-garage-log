@@ -9,7 +9,7 @@ import GarageHeader from '@/components/GarageHeader';
 import VehicleList from '@/components/VehicleList';
 import { useGarageData } from '@/hooks/useGarageData';
 import { Button } from "@/components/ui/button";
-import { CloudUpload, AlertCircle } from "lucide-react";
+import { CloudUpload, AlertCircle, Save } from "lucide-react";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -17,13 +17,13 @@ const Index = () => {
     vehicles, 
     serviceLogs, 
     isLoading, 
-    isSyncing,
+    isSaving,
     syncError,
     lastSyncAttempt,
     handleAddVehicle, 
     handleAddServiceLog,
     updateVehicleMileage,
-    triggerSync
+    retrySave
   } = useGarageData();
   
   const [addVehicleDialogOpen, setAddVehicleDialogOpen] = useState(false);
@@ -70,6 +70,13 @@ const Index = () => {
     return lastSyncAttempt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Function to handle retry for the currently selected vehicle
+  const handleRetry = () => {
+    if (selectedVehicle) {
+      retrySave(selectedVehicle.id);
+    }
+  };
+
   return (
     <div className="container py-8">
       <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
@@ -84,22 +91,24 @@ const Index = () => {
           )}
           
           <div className="text-xs text-muted-foreground">
-            {lastSyncAttempt && !isSyncing && (
-              <span>Last sync: {formatLastSync()}</span>
+            {lastSyncAttempt && !isSaving && (
+              <span>Last save: {formatLastSync()}</span>
             )}
           </div>
         </div>
         
-        <Button 
-          variant={syncError ? "destructive" : "outline"}
-          size="sm" 
-          onClick={triggerSync} 
-          disabled={isLoading || isSyncing}
-          className="flex items-center gap-1"
-        >
-          <CloudUpload size={16} className={isSyncing ? "animate-spin" : ""} />
-          {isSyncing ? "Syncing..." : syncError ? "Retry Sync" : "Sync to Cloud"}
-        </Button>
+        {selectedVehicle && (
+          <Button 
+            variant={syncError ? "destructive" : "outline"}
+            size="sm" 
+            onClick={handleRetry} 
+            disabled={isLoading || isSaving}
+            className="flex items-center gap-1 mr-2"
+          >
+            <Save size={16} className={isSaving ? "animate-spin" : ""} />
+            {isSaving ? "Saving..." : syncError ? "Retry Save" : "Save Vehicle"}
+          </Button>
+        )}
       </div>
       
       <VehicleList 
