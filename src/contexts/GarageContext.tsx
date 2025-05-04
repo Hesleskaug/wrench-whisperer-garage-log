@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -72,9 +73,9 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       
       // Then insert the new vehicles
       if (vehicles.length > 0) {
-        // Convert vehicle objects to match the database schema
+        // Ensure all vehicles have valid UUIDs before inserting
         const vehiclesToInsert = vehicles.map(vehicle => ({
-          id: vehicle.id,
+          id: vehicle.id.includes('-') ? vehicle.id : uuidv4(), // Ensure ID is a UUID
           make: vehicle.make,
           model: vehicle.model,
           year: vehicle.year,
@@ -82,7 +83,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           plate: vehicle.plate || '',
           vin: vehicle.vin || null,
           image_url: vehicle.image || null,
-          notes: vehicle.notes || null, // Now this will work as we've added it to the Vehicle interface
+          notes: vehicle.notes || null,
           garage_id: garageId,
           user_id: 'anonymous', // Using a placeholder since we don't have actual user authentication
         }));
