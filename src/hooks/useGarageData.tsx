@@ -28,11 +28,11 @@ export const useGarageData = () => {
           setVehicles(fetchedVehicles);
           setSyncError(null);
         } else {
-          // If no vehicles, use mock data
-          console.log('Using default mock vehicles');
+          // If no vehicles, use mock data for first-time users
+          console.log('No vehicles found, using default mock vehicles');
           setVehicles(defaultMockVehicles);
           
-          // Try to save mock vehicles to database one by one
+          // Try to save mock vehicles to database one by one for first-time setup
           for (const vehicle of defaultMockVehicles) {
             try {
               await saveVehicle(vehicle);
@@ -57,13 +57,9 @@ export const useGarageData = () => {
         setSyncError('Failed to load garage data.');
         toast.error('There was a problem loading your garage data');
         
-        // Final fallback to mock data
-        setVehicles(defaultMockVehicles);
-        setServiceLogs(defaultMockServiceLogs);
-        
-        // Save fallback data to localStorage
-        localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(defaultMockVehicles));
-        syncServiceLogs(defaultMockServiceLogs);
+        // Final fallback to mock data for offline use
+        setVehicles([]);
+        setServiceLogs([]);
       } finally {
         setIsLoading(false);
       }
@@ -94,18 +90,8 @@ export const useGarageData = () => {
       setLastSyncAttempt(new Date());
     } catch (error) {
       console.error('Failed to save vehicle:', error);
-      setSyncError('Failed to save to database. Vehicle saved locally.');
-      
-      // Add to local state anyway
-      setVehicles(prev => [...prev, vehicle]);
-      
-      // Ensure it's saved to localStorage at least
-      if (garageId) {
-        const existingVehicles = JSON.parse(localStorage.getItem(`vehicles_${garageId}`) || '[]');
-        localStorage.setItem(`vehicles_${garageId}`, JSON.stringify([...existingVehicles, vehicle]));
-      }
-      
-      toast.error('Could not save vehicle to database. Saved locally only.');
+      setSyncError('Failed to save to database');
+      toast.error('Could not save vehicle to database');
     } finally {
       setIsSaving(false);
     }
@@ -146,23 +132,9 @@ export const useGarageData = () => {
       console.log('Vehicle mileage updated successfully');
     } catch (error) {
       console.error('Failed to update vehicle mileage in database:', error);
-      setSyncError('Failed to update database. Mileage updated locally.');
+      setSyncError('Failed to update database');
       
-      // Update local state anyway
-      setVehicles(prev => 
-        prev.map(v => v.id === vehicleId ? updatedVehicle : v)
-      );
-      
-      // Ensure it's saved to localStorage at least
-      if (garageId) {
-        const storedVehicles = JSON.parse(localStorage.getItem(`vehicles_${garageId}`) || '[]');
-        const updatedVehicles = storedVehicles.map((v: Vehicle) => 
-          v.id === vehicleId ? updatedVehicle : v
-        );
-        localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
-      }
-      
-      toast.info('Vehicle mileage updated locally. Could not update in database.');
+      toast.error('Could not update vehicle mileage in database');
     } finally {
       setIsSaving(false);
     }
@@ -219,16 +191,16 @@ export const useGarageData = () => {
       setLastSyncAttempt(new Date());
       
       if (errorCount === 0) {
-        toast.success(`All ${successCount} vehicles synced successfully`);
+        toast.success(`All ${successCount} vehicles saved successfully`);
         setSyncError(null);
       } else {
-        toast.warning(`Synced ${successCount} vehicles, ${errorCount} failed`);
-        setSyncError(`${errorCount} vehicles failed to sync`);
+        toast.warning(`Saved ${successCount} vehicles, ${errorCount} failed`);
+        setSyncError(`${errorCount} vehicles failed to save`);
       }
     } catch (error) {
-      console.error('Sync all vehicles failed:', error);
-      setSyncError('Sync failed. Please try again later.');
-      toast.error('Failed to sync vehicles to database');
+      console.error('Save all vehicles failed:', error);
+      setSyncError('Save failed. Please try again later.');
+      toast.error('Failed to save vehicles to database');
     } finally {
       setIsSaving(false);
     }

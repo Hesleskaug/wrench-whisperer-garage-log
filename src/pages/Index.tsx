@@ -78,8 +78,8 @@ const Index = () => {
     }
   };
 
-  // Function to sync all vehicles to the cloud
-  const handleSyncAllVehicles = () => {
+  // Function to save all vehicles to the cloud
+  const handleSaveAllVehicles = () => {
     syncAllVehicles();
   };
 
@@ -119,12 +119,12 @@ const Index = () => {
         <Button 
           variant="outline"
           size="sm" 
-          onClick={handleSyncAllVehicles} 
+          onClick={handleSaveAllVehicles} 
           disabled={isLoading || isSaving || vehicles.length === 0}
           className="flex items-center gap-1"
         >
           <RefreshCw size={16} className={isSaving ? "animate-spin" : ""} />
-          Sync All Vehicles
+          Save All Vehicles
         </Button>
       </div>
       

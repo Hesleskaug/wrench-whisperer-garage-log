@@ -107,7 +107,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // New function to save a single vehicle directly to the database
+  // Function to save a single vehicle directly to the database
   const saveVehicle = async (vehicle: Vehicle) => {
     if (!garageId) {
       console.error('No garage ID available');
@@ -145,14 +145,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('Successfully saved vehicle to database:', data);
-
-      // Also save to localStorage as a backup
-      const existingVehicles = JSON.parse(localStorage.getItem(`vehicles_${garageId}`) || '[]');
-      const updatedVehicles = existingVehicles
-        .filter((v: Vehicle) => v.id !== vehicle.id)
-        .concat([vehicle]);
-      localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
-      
       return data;
     } catch (error) {
       console.error('Error in saveVehicle:', error);
@@ -160,7 +152,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Improved function to fetch vehicles from Supabase
+  // Function to fetch vehicles from Supabase
   const fetchVehicles = async (): Promise<Vehicle[]> => {
     if (!garageId) {
       console.error('No garage ID available');
@@ -198,30 +190,13 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           notes: record.notes || undefined,
         }));
         
-        // Update localStorage with the latest from Supabase
-        localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(vehicles));
-        
         return vehicles;
       }
       
-      // If no data in Supabase, try to get data from localStorage
-      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
-      if (storedVehicles) {
-        const parsedVehicles = JSON.parse(storedVehicles);
-        return parsedVehicles;
-      }
-      
-      // If no data anywhere, return empty array
+      // If no data in Supabase, return empty array
       return [];
     } catch (error) {
       console.error('Error in fetchVehicles:', error);
-      
-      // Try to fall back to localStorage data
-      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
-      if (storedVehicles) {
-        return JSON.parse(storedVehicles);
-      }
-      
       throw error;
     }
   };
