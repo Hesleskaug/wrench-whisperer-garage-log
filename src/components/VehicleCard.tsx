@@ -93,11 +93,13 @@ const VehicleCard = ({ vehicle, onServiceLog }: VehicleCardProps) => {
 
   // Determine fuel type for display
   const getFuelTypeDisplay = () => {
-    if (!vehicle.specs?.fuelType) return null;
+    // Get fuel type from either the vehicle directly or from specs
+    const fuelType = vehicle.fuelType || vehicle.specs?.fuelType;
+    if (!fuelType) return null;
     
     return (
-      <Badge className={getFuelBadgeColor(vehicle.specs.fuelType)}>
-        {vehicle.specs.fuelType}
+      <Badge className={getFuelBadgeColor(fuelType)}>
+        {fuelType}
       </Badge>
     );
   };

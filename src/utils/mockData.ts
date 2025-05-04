@@ -1,3 +1,4 @@
+
 export interface Vehicle {
   id: string;
   make: string;
@@ -7,8 +8,9 @@ export interface Vehicle {
   plate?: string;
   mileage: number;
   image?: string;
-  bodyType?: string; // Added bodyType property
-  specs?: VehicleSpecs; // Add specs directly to the vehicle
+  bodyType?: string; 
+  specs?: VehicleSpecs;
+  fuelType?: string; // Add fuelType directly to Vehicle for accessibility
 }
 
 export interface ReceiptInfo {
@@ -69,6 +71,7 @@ export interface VehicleSpecs {
   rearBrakeType?: string;
   brakeFluidType?: string;
   additionalNotes?: string;
+  fuelType?: string; // Added fuelType to VehicleSpecs
 }
 
 export const mockVehicles: Vehicle[] = [
@@ -80,7 +83,8 @@ export const mockVehicles: Vehicle[] = [
     plate: 'AB12345',
     mileage: 78500,
     bodyType: 'Station Wagon',
-    image: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2025&q=80'
+    image: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2025&q=80',
+    fuelType: 'Diesel' // Added fuelType
   },
   {
     id: '2',
@@ -90,7 +94,8 @@ export const mockVehicles: Vehicle[] = [
     plate: 'CD67890',
     mileage: 45200,
     bodyType: 'SUV',
-    image: 'https://images.unsplash.com/photo-1581540222194-0def2dda95b8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1887&q=80'
+    image: 'https://images.unsplash.com/photo-1581540222194-0def2dda95b8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1887&q=80',
+    fuelType: 'E5' // Added fuelType
   }
 ];
 
@@ -289,6 +294,7 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
     rearBrakeType: 'Solid discs, 320mm',
     brakeFluidType: 'DOT 4',
     additionalNotes: 'Timing belt replacement recommended at 120,000 km. Requires special tool for oil filter removal.',
+    fuelType: 'Diesel' // Added fuelType
   },
   {
     id: '2',
@@ -314,5 +320,6 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
     rearBrakeType: 'Solid discs, 281mm',
     brakeFluidType: 'DOT 3',
     additionalNotes: 'Uses Toyota maintenance-free timing chain. Hybrid model requires different service procedures.',
+    fuelType: 'E5' // Added fuelType
   }
 ];
