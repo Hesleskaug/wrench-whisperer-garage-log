@@ -1,21 +1,42 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import VehicleCard from "@/components/VehicleCard";
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
-import { Vehicle, ServiceLog, mockVehicles, mockServiceLogs } from "@/utils/mockData";
+import { Vehicle, ServiceLog, mockVehicles as defaultMockVehicles, mockServiceLogs as defaultMockServiceLogs } from "@/utils/mockData";
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import { useGarage } from '@/contexts/GarageContext';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
-  const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>(mockServiceLogs);
+  const { garageId } = useGarage();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
   const [addVehicleDialogOpen, setAddVehicleDialogOpen] = useState(false);
   const [serviceLogDialogOpen, setServiceLogDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  
+  // Load vehicles and service logs from localStorage based on garage ID
+  useEffect(() => {
+    if (garageId) {
+      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+      const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+      
+      setVehicles(storedVehicles ? JSON.parse(storedVehicles) : defaultMockVehicles);
+      setServiceLogs(storedServiceLogs ? JSON.parse(storedServiceLogs) : defaultMockServiceLogs);
+    }
+  }, [garageId]);
+  
+  // Save vehicles and service logs to localStorage when they change
+  useEffect(() => {
+    if (garageId) {
+      localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(vehicles));
+      localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(serviceLogs));
+    }
+  }, [vehicles, serviceLogs, garageId]);
 
   const handleAddVehicle = (vehicle: Vehicle) => {
     setVehicles(prev => [...prev, vehicle]);
@@ -53,7 +74,7 @@ const Index = () => {
     <div className="container py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-mechanic-blue">Wrench Whisperer</h1>
+          <h1 className="text-3xl font-bold text-mechanic-blue">Your Garage</h1>
           <p className="text-mechanic-gray">Track and manage your vehicle maintenance</p>
         </div>
         <Button 

@@ -4,20 +4,20 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { GarageProvider } from "@/contexts/GarageContext";
 import Index from "./pages/Index";
 import VehicleDetails from "./pages/VehicleDetails";
-import Auth from "./pages/Auth";
+import GarageAccess from "./pages/GarageAccess";
 import UserSettings from "./pages/UserSettings";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
-import PrivateRoute from "./components/PrivateRoute";
+import GarageRoute from "./components/GarageRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+    <GarageProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -25,8 +25,8 @@ const App = () => (
           <div className="min-h-screen flex flex-col">
             <Routes>
               <Route 
-                path="/auth" 
-                element={<Auth />} 
+                path="/garage" 
+                element={<GarageAccess />} 
               />
               <Route 
                 path="/*" 
@@ -38,25 +38,25 @@ const App = () => (
                         <Route 
                           path="/" 
                           element={
-                            <PrivateRoute>
+                            <GarageRoute>
                               <Index />
-                            </PrivateRoute>
+                            </GarageRoute>
                           } 
                         />
                         <Route 
                           path="/vehicle/:id" 
                           element={
-                            <PrivateRoute>
+                            <GarageRoute>
                               <VehicleDetails />
-                            </PrivateRoute>
+                            </GarageRoute>
                           } 
                         />
                         <Route 
                           path="/settings" 
                           element={
-                            <PrivateRoute>
+                            <GarageRoute>
                               <UserSettings />
-                            </PrivateRoute>
+                            </GarageRoute>
                           } 
                         />
                         <Route path="*" element={<NotFound />} />
@@ -69,7 +69,7 @@ const App = () => (
           </div>
         </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>
+    </GarageProvider>
   </QueryClientProvider>
 );
 

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useGarage } from '@/contexts/GarageContext';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,16 +10,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, User, Menu, X } from 'lucide-react';
+import { Settings, LogOut, Garage, Menu, X, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Navigation = () => {
-  const { user, signOut } = useAuth();
+  const { garageId, leaveGarage } = useGarage();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+  const handleCopyGarageId = () => {
+    if (garageId) {
+      navigator.clipboard.writeText(garageId);
+      toast.success('Garage ID copied to clipboard');
+    }
+  };
+  
+  const handleLeaveGarage = () => {
+    leaveGarage();
+    navigate('/garage');
   };
   
   return (
@@ -50,26 +58,41 @@ const Navigation = () => {
             Garage
           </Link>
           
-          {user ? (
+          {garageId ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
                   className="flex items-center gap-2"
                 >
-                  <User size={16} />
-                  {user.email?.split('@')[0] || 'Account'}
+                  <Garage size={16} />
+                  Your Garage
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-72">
+                <div className="px-2 py-2 text-sm">
+                  <p className="text-muted-foreground mb-1">Garage ID:</p>
+                  <div className="flex items-center justify-between bg-muted p-2 rounded">
+                    <code className="text-xs truncate mr-2">{garageId}</code>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={handleCopyGarageId}
+                      className="h-8 w-8"
+                    >
+                      <Copy size={14} />
+                    </Button>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings size={16} className="mr-2" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
+                <DropdownMenuItem onClick={handleLeaveGarage}>
                   <LogOut size={16} className="mr-2" />
-                  Sign Out
+                  Exit Garage
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -77,9 +100,9 @@ const Navigation = () => {
             <Button 
               variant="default" 
               className="bg-mechanic-blue hover:bg-mechanic-blue/90"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/garage')}
             >
-              Sign In
+              Access Garage
             </Button>
           )}
         </nav>
@@ -106,8 +129,22 @@ const Navigation = () => {
                 Garage
               </Link>
               
-              {user ? (
+              {garageId ? (
                 <>
+                  <div className="py-2">
+                    <p className="text-sm text-muted-foreground mb-1">Garage ID:</p>
+                    <div className="flex items-center justify-between bg-muted p-2 rounded">
+                      <code className="text-xs truncate mr-2">{garageId}</code>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={handleCopyGarageId}
+                        className="h-8 w-8"
+                      >
+                        <Copy size={14} />
+                      </Button>
+                    </div>
+                  </div>
                   <Link
                     to="/settings"
                     className="text-lg py-2 text-mechanic-gray hover:text-mechanic-blue transition-colors"
@@ -120,12 +157,12 @@ const Navigation = () => {
                     variant="outline" 
                     className="justify-start"
                     onClick={() => {
-                      handleSignOut();
+                      handleLeaveGarage();
                       setMobileMenuOpen(false);
                     }}
                   >
                     <LogOut size={18} className="mr-2" />
-                    Sign Out
+                    Exit Garage
                   </Button>
                 </>
               ) : (
@@ -133,11 +170,11 @@ const Navigation = () => {
                   variant="default" 
                   className="bg-mechanic-blue hover:bg-mechanic-blue/90 mt-2"
                   onClick={() => {
-                    navigate('/auth');
+                    navigate('/garage');
                     setMobileMenuOpen(false);
                   }}
                 >
-                  Sign In
+                  Access Garage
                 </Button>
               )}
             </nav>
