@@ -72,13 +72,15 @@ serve(async (req) => {
     
     const vehicleData = await response.json();
     console.log("Vehicle data retrieved successfully");
+    console.log("Raw vehicle data:", JSON.stringify(vehicleData));
     
     // Transform the API response to match our app's data structure
     const transformedData = {
       make: vehicleData.kjoretoydataEier?.merke?.merke || "",
       model: vehicleData.kjoretoydataEier?.modell?.modellType || 
              vehicleData.kjoretoydataEier?.modell?.modellBetegnelse || "",
-      year: parseInt(vehicleData.kjoretoydataEier?.forstegangsregistrering?.dato?.substring(0,4)) || null,
+      year: vehicleData.kjoretoydataEier?.forstegangsregistrering?.dato ? 
+            parseInt(vehicleData.kjoretoydataEier.forstegangsregistrering.dato.substring(0,4)) : null,
       vin: vehicleData.kjoretoydataEier?.understellsnummer || "",
       plate: cleanPlate,
       registrationDate: vehicleData.kjoretoydataEier?.forstegangsregistrering?.dato || null,
@@ -88,6 +90,8 @@ serve(async (req) => {
       fuelType: vehicleData.kjoretoydataEier?.tekniskData?.motor?.drivstoff?.drivstoffKodeTekst || "",
       ownerStatus: vehicleData.kjoretoydataEier?.registrering?.eier?.eierstatus || ""
     };
+    
+    console.log("Transformed vehicle data:", JSON.stringify(transformedData));
     
     return new Response(
       JSON.stringify(transformedData),

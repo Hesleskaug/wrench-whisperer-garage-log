@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Vehicle } from "@/utils/mockData";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 const formSchema = z.object({
   make: z.string().min(1, "Make is required"),
@@ -46,6 +46,7 @@ interface AddVehicleFormProps {
 const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,6 +94,7 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
 
   const handleLookupPlate = async () => {
     const plateValue = form.getValues("plate");
+    setLookupError(null);
     
     if (!plateValue || plateValue.trim() === "") {
       toast.error("Please enter a license plate");
@@ -106,23 +108,38 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
         body: { plate: plateValue }
       });
       
+      console.log("Vehicle lookup response:", data);
+      
       if (error) {
         console.error("Error from edge function:", error);
+        setLookupError(error.message || "Failed to fetch vehicle data");
         toast.error(error.message || "Failed to fetch vehicle data");
         return;
       }
       
       if (data.error) {
         console.error("API error:", data.error);
+        setLookupError(data.error);
         toast.error(data.error === "Vehicle not found" 
           ? "No vehicle found with that license plate" 
           : "Error looking up vehicle");
         return;
       }
       
+      if (!data.make && !data.model) {
+        setLookupError("No vehicle details found for this plate");
+        toast.error("No vehicle details found for this plate");
+        return;
+      }
+      
       // Update form fields with fetched data
-      form.setValue("make", data.make);
-      form.setValue("model", data.model);
+      if (data.make) {
+        form.setValue("make", data.make);
+      }
+      
+      if (data.model) {
+        form.setValue("model", data.model);
+      }
       
       if (data.year) {
         form.setValue("year", data.year);
@@ -132,10 +149,16 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
         form.setValue("vin", data.vin);
       }
       
-      toast.success("Vehicle found! Information filled in automatically.");
+      // Only show success toast if we actually filled in some data
+      if (data.make || data.model || data.year || data.vin) {
+        toast.success("Vehicle found! Information filled in automatically.");
+      } else {
+        toast.info("Vehicle found, but no detailed information available.");
+      }
       
     } catch (error) {
       console.error("Error looking up vehicle:", error);
+      setLookupError("Failed to lookup vehicle");
       toast.error("Failed to lookup vehicle");
     } finally {
       setIsLookingUp(false);
@@ -178,9 +201,16 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
                         Look Up
                       </Button>
                     </div>
-                    <FormDescription>
-                      Enter a plate number to auto-fill vehicle details
-                    </FormDescription>
+                    {lookupError ? (
+                      <div className="flex items-center gap-2 text-sm text-red-500 mt-1">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{lookupError}</span>
+                      </div>
+                    ) : (
+                      <FormDescription>
+                        Enter a plate number to auto-fill vehicle details
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
