@@ -10,7 +10,7 @@ export const translations = {
   language: "Language",
   details: "Details",
   logService: "Log Service",
-  currentMileage: "Current Mileage",
+  currentMileage: "Last Logged Mileage", // Updated from "Current Mileage"
   loading: "Loading...",
   deleteVehicle: "Delete Vehicle",
   confirmDelete: "Are you sure you want to delete this vehicle?",
