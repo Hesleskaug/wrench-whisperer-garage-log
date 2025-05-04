@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ImageIcon, PlusCircle, XCircle, CheckCircle } from "lucide-react";
+import { ImageIcon, PlusCircle, XCircle, CheckCircle, Upload } from "lucide-react";
 
 interface TaskImageUploaderProps {
   images: string[];
@@ -21,6 +21,7 @@ const TaskImageUploader = ({
 }: TaskImageUploaderProps) => {
   const [imageUrl, setImageUrl] = useState('');
   const [showInput, setShowInput] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
 
   const addImage = () => {
     if (!imageUrl.trim()) return;
@@ -34,6 +35,29 @@ const TaskImageUploader = ({
     const updatedImages = [...images];
     updatedImages.splice(index, 1);
     onImagesChange(updatedImages);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) continue;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          const dataUrl = e.target.result as string;
+          onImagesChange([...images, dataUrl]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+    setShowUploader(false);
   };
 
   return (
@@ -75,8 +99,45 @@ const TaskImageUploader = ({
         </div>
       )}
       
-      {showInput ? (
-        <div className="flex gap-2 items-center">
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+          onClick={() => setShowUploader(!showUploader)}
+        >
+          <Upload size={16} />
+          Upload Image
+        </Button>
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+          onClick={() => setShowInput(!showInput)}
+        >
+          <PlusCircle size={16} />
+          <ImageIcon size={16} />
+          Add Image URL
+        </Button>
+      </div>
+      
+      {showUploader && (
+        <div className="mt-2">
+          <Input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileUpload}
+            className="cursor-pointer"
+          />
+        </div>
+      )}
+      
+      {showInput && (
+        <div className="flex gap-2 items-center mt-2">
           <Input
             placeholder="Enter image URL"
             value={imageUrl}
@@ -103,18 +164,6 @@ const TaskImageUploader = ({
             Cancel
           </Button>
         </div>
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-1"
-          onClick={() => setShowInput(true)}
-        >
-          <PlusCircle size={16} />
-          <ImageIcon size={16} />
-          Add Image URL
-        </Button>
       )}
     </div>
   );

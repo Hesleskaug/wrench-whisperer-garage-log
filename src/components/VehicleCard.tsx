@@ -19,7 +19,7 @@ const VehicleCard = ({ vehicle, onServiceLog }: VehicleCardProps) => {
     navigate(`/vehicle/${vehicle.id}`);
   };
   
-  // Determine which image to show
+  // Display vehicle image or fallback to icon
   const getImageToDisplay = () => {
     // If vehicle has an image and no error loading it, use that
     if (vehicle.image && !imageError) {

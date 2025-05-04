@@ -3,18 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import ServiceHistoryTable from "@/components/ServiceHistoryTable";
 import ServiceLogForm from "@/components/ServiceLogForm";
 import EditVehicleForm from "@/components/EditVehicleForm";
 import DeleteVehicleDialog from "@/components/DeleteVehicleDialog";
 import VehicleSpecsCard from "@/components/VehicleSpecsCard";
-import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2, Clock, Upload, Image as ImageIcon } from "lucide-react";
+import TaskImageUploader from "@/components/TaskImageUploader";
+import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2, Clock } from "lucide-react";
 import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/mockData";
 import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
 import { Badge } from "@/components/ui/badge";
-import TaskImageUploader from "@/components/TaskImageUploader";
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,11 +27,10 @@ const VehicleDetails = () => {
   const [editVehicleDialogOpen, setEditVehicleDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  // New state for vehicle details from the API
+  // State for vehicle details from the API
   const [vehicleDetails, setVehicleDetails] = useState<any>(null);
-  // New state for image upload interface
+  // State for image management
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [newImageUrl, setNewImageUrl] = useState("");
   const [vehicleImages, setVehicleImages] = useState<string[]>([]);
 
   // Format date for better display
@@ -125,50 +123,19 @@ const VehicleDetails = () => {
     setLoading(false);
   }, [id, navigate, garageId]);
 
-  // Add image URLs to a vehicle
-  const handleAddImage = () => {
+  // Handle the new image uploads
+  const handleImagesChange = (newImages: string[]) => {
     if (!vehicle || !garageId) return;
     
-    // Validate URL format
-    if (!newImageUrl || !newImageUrl.trim()) {
-      toast.error("Please enter a valid image URL");
-      return;
+    setVehicleImages(newImages);
+    localStorage.setItem(`vehicle_images_${vehicle.id}`, JSON.stringify(newImages));
+    
+    // If there's no primary image set, use the first image as primary
+    if (newImages.length > 0 && !vehicle.image) {
+      setMainVehicleImage(newImages[0]);
     }
-
-    try {
-      // Add the image to the list
-      const updatedImages = [...vehicleImages, newImageUrl];
-      setVehicleImages(updatedImages);
-
-      // Save the images to localStorage
-      localStorage.setItem(`vehicle_images_${vehicle.id}`, JSON.stringify(updatedImages));
-
-      // If this is the first image and vehicle doesn't have a primary image yet, set it
-      if (!vehicle.image) {
-        const updatedVehicle = {
-          ...vehicle,
-          image: newImageUrl
-        };
-        setVehicle(updatedVehicle);
-        
-        // Update the vehicle in localStorage
-        const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
-        if (storedVehicles) {
-          const vehicles = JSON.parse(storedVehicles);
-          const updatedVehicles = vehicles.map((v: Vehicle) => 
-            v.id === vehicle.id ? updatedVehicle : v
-          );
-          localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
-        }
-      }
-      
-      // Reset input
-      setNewImageUrl("");
-      toast.success("Image added successfully");
-    } catch (error) {
-      console.error("Error adding image:", error);
-      toast.error("Failed to add image");
-    }
+    
+    toast.success("Vehicle images updated");
   };
 
   // Set main vehicle image
@@ -193,39 +160,6 @@ const VehicleDetails = () => {
     }
     
     toast.success("Main image updated");
-  };
-
-  // Remove image from vehicle
-  const handleRemoveImage = (index: number) => {
-    if (!vehicle || !garageId) return;
-    
-    const updatedImages = [...vehicleImages];
-    const removedImage = updatedImages.splice(index, 1)[0];
-    setVehicleImages(updatedImages);
-    
-    // Save the updated images to localStorage
-    localStorage.setItem(`vehicle_images_${vehicle.id}`, JSON.stringify(updatedImages));
-    
-    // If the removed image was the primary image, update the vehicle
-    if (vehicle.image === removedImage) {
-      const updatedVehicle = {
-        ...vehicle,
-        image: updatedImages.length > 0 ? updatedImages[0] : undefined
-      };
-      setVehicle(updatedVehicle);
-      
-      // Update the vehicle in localStorage
-      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
-      if (storedVehicles) {
-        const vehicles = JSON.parse(storedVehicles);
-        const updatedVehicles = vehicles.map((v: Vehicle) => 
-          v.id === vehicle.id ? updatedVehicle : v
-        );
-        localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
-      }
-    }
-    
-    toast.success("Image removed");
   };
 
   const handleAddServiceLog = (serviceLog: ServiceLog) => {
@@ -324,48 +258,6 @@ const VehicleDetails = () => {
                      vehicleDetails.firstRegistrationDate && 
                      vehicleDetails.importDate !== vehicleDetails.firstRegistrationDate;
 
-  // Find default image if none set
-  const getGenericVehicleImage = (vehicle: Vehicle): string => {
-    const type = vehicle.bodyType?.toLowerCase() || '';
-    const make = vehicle.make?.toLowerCase() || '';
-    const model = vehicle.model?.toLowerCase() || '';
-
-    // First check for specific vehicle models
-    if (make.includes('toyota') && model.includes('rav4')) {
-      return "https://images.unsplash.com/photo-1551830820-330a71b99659?q=80&w=1470&auto=format&fit=crop";
-    } else if (make.includes('volvo') && model.includes('v70')) {
-      return "https://images.unsplash.com/photo-1553440569-bcc63803a83d?q=80&w=1470&auto=format&fit=crop";
-    }
-
-    // Then fall back to body type
-    if (type.includes('suv') || make.includes('suv')) {
-      return "https://images.unsplash.com/photo-1600861194942-f883de0dfe96?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('sedan') || type.includes('saloon')) {
-      return "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('hatch') || type.includes('compact')) {
-      return "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('coupe') || type.includes('sport')) {
-      return "https://images.unsplash.com/photo-1532581140115-3e355d1ed1de?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('pickup') || type.includes('truck')) {
-      return "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('convertible') || type.includes('cabrio')) {
-      return "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('station') || type.includes('wagon') || type.includes('estate')) {
-      return "https://images.unsplash.com/photo-1553440569-bcc63803a83d?q=80&w=1470&auto=format&fit=crop";
-    } else if (type.includes('minivan') || type.includes('mpv')) {
-      return "https://images.unsplash.com/photo-1543465077-db45d34b88a5?q=80&w=1470&auto=format&fit=crop";
-    }
-
-    // Default image if no specific type is detected
-    return "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1470&auto=format&fit=crop";
-  };
-
-  const defaultGenericImage = vehicle.bodyType 
-    ? getGenericVehicleImage(vehicle) 
-    : (vehicleDetails?.bodyType 
-      ? getGenericVehicleImage({...vehicle, bodyType: vehicleDetails.bodyType}) 
-      : undefined);
-
   return (
     <div className="container py-8">
       <Button 
@@ -413,15 +305,7 @@ const VehicleDetails = () => {
                   className="bg-white bg-opacity-80 hover:bg-opacity-100"
                   onClick={() => setIsUploadingImage(!isUploadingImage)}
                 >
-                  {isUploadingImage ? (
-                    <span className="flex items-center gap-1">
-                      <ImageIcon size={16} /> Close
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <ImageIcon size={16} /> Manage Images
-                    </span>
-                  )}
+                  {isUploadingImage ? "Close" : "Manage Images"}
                 </Button>
               </div>
             </div>
@@ -429,57 +313,13 @@ const VehicleDetails = () => {
             {/* Image upload interface */}
             {isUploadingImage && (
               <div className="p-4 border-b border-gray-100">
-                <h3 className="text-sm font-medium mb-2">Add Vehicle Images</h3>
-                
-                <div className="mb-3">
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Enter image URL"
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button 
-                      type="button" 
-                      size="sm" 
-                      onClick={handleAddImage}
-                      className="whitespace-nowrap"
-                    >
-                      <Upload size={16} className="mr-1" /> Add
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Vehicle image gallery */}
-                {vehicleImages.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-xs font-medium text-gray-500 mb-2">Vehicle Images</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {vehicleImages.map((imageUrl, index) => (
-                        <div key={index} className="relative group">
-                          <img 
-                            src={imageUrl} 
-                            alt={`${vehicle.make} ${vehicle.model}`}
-                            className={`w-16 h-16 object-cover rounded border-2 ${vehicle.image === imageUrl ? 'border-mechanic-blue' : 'border-transparent hover:border-gray-300'}`}
-                            onClick={() => setMainVehicleImage(imageUrl)}
-                          />
-                          <button
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100"
-                            onClick={() => handleRemoveImage(index)}
-                          >
-                            ×
-                          </button>
-                          {vehicle.image === imageUrl && (
-                            <span className="absolute bottom-0 left-0 right-0 bg-mechanic-blue bg-opacity-80 text-white text-[8px] text-center">
-                              Main
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <TaskImageUploader
+                  title="Vehicle Images"
+                  images={vehicleImages}
+                  onImagesChange={handleImagesChange}
+                  mainImage={vehicle.image}
+                  onSetMainImage={setMainVehicleImage}
+                />
               </div>
             )}
             
