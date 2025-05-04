@@ -72,24 +72,76 @@ serve(async (req) => {
     
     const vehicleData = await response.json();
     console.log("Vehicle data retrieved successfully");
-    console.log("Raw vehicle data:", JSON.stringify(vehicleData));
     
-    // Transform the API response to match our app's data structure
+    // Check if we have the expected data structure
+    if (!vehicleData || !vehicleData.kjoretoydataListe || vehicleData.kjoretoydataListe.length === 0) {
+      console.error("Unexpected API response format:", JSON.stringify(vehicleData));
+      return new Response(
+        JSON.stringify({ error: "Unexpected API response format" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Get the first vehicle data entry
+    const vehicle = vehicleData.kjoretoydataListe[0];
+    console.log("Processing vehicle data:", JSON.stringify(vehicle));
+    
+    // Extract relevant information from the response
     const transformedData = {
-      make: vehicleData.kjoretoydataEier?.merke?.merke || "",
-      model: vehicleData.kjoretoydataEier?.modell?.modellType || 
-             vehicleData.kjoretoydataEier?.modell?.modellBetegnelse || "",
-      year: vehicleData.kjoretoydataEier?.forstegangsregistrering?.dato ? 
-            parseInt(vehicleData.kjoretoydataEier.forstegangsregistrering.dato.substring(0,4)) : null,
-      vin: vehicleData.kjoretoydataEier?.understellsnummer || "",
+      make: "",
+      model: "",
+      year: null,
+      vin: "",
       plate: cleanPlate,
-      registrationDate: vehicleData.kjoretoydataEier?.forstegangsregistrering?.dato || null,
-      color: vehicleData.kjoretoydataEier?.farge || "",
-      weight: vehicleData.kjoretoydataEier?.tekniskData?.vekter?.egenvekt || null,
-      engineSize: vehicleData.kjoretoydataEier?.tekniskData?.motor?.slagvolum || null,
-      fuelType: vehicleData.kjoretoydataEier?.tekniskData?.motor?.drivstoff?.drivstoffKodeTekst || "",
-      ownerStatus: vehicleData.kjoretoydataEier?.registrering?.eier?.eierstatus || ""
+      registrationDate: null,
+      color: "",
+      weight: null,
+      engineSize: null,
+      fuelType: "",
+      ownerStatus: ""
     };
+    
+    // Extract make/brand
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.generelt?.merke?.[0]?.merke) {
+      transformedData.make = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.generelt.merke[0].merke;
+    }
+    
+    // Extract model
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.generelt?.handelsbetegnelse?.[0]) {
+      transformedData.model = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.generelt.handelsbetegnelse[0];
+    }
+    
+    // Extract VIN
+    if (vehicle.kjoretoyId?.understellsnummer) {
+      transformedData.vin = vehicle.kjoretoyId.understellsnummer;
+    }
+    
+    // Extract registration date
+    if (vehicle.forstegangsregistrering?.registrertForstegangNorgeDato) {
+      transformedData.registrationDate = vehicle.forstegangsregistrering.registrertForstegangNorgeDato;
+      // Extract year from registration date
+      transformedData.year = parseInt(vehicle.forstegangsregistrering.registrertForstegangNorgeDato.substring(0, 4), 10);
+    }
+    
+    // Extract color
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.karosseriOgLasteplan?.rFarge?.[0]?.kodeNavn) {
+      transformedData.color = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.karosseriOgLasteplan.rFarge[0].kodeNavn;
+    }
+    
+    // Extract weight
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.vekter?.egenvekt) {
+      transformedData.weight = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.vekter.egenvekt;
+    }
+    
+    // Extract engine size
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.motorOgDrivverk?.motor?.[0]?.slagvolum) {
+      transformedData.engineSize = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.motor[0].slagvolum;
+    }
+    
+    // Extract fuel type
+    if (vehicle.godkjenning?.tekniskGodkjenning?.tekniskeData?.motorOgDrivverk?.motor?.[0]?.drivstoff?.[0]?.drivstoffKode?.kodeNavn) {
+      transformedData.fuelType = vehicle.godkjenning.tekniskGodkjenning.tekniskeData.motorOgDrivverk.motor[0].drivstoff[0].drivstoffKode.kodeNavn;
+    }
     
     console.log("Transformed vehicle data:", JSON.stringify(transformedData));
     

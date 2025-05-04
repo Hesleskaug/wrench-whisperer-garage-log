@@ -47,6 +47,7 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupSuccess, setLookupSuccess] = useState<boolean>(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -95,6 +96,7 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
   const handleLookupPlate = async () => {
     const plateValue = form.getValues("plate");
     setLookupError(null);
+    setLookupSuccess(false);
     
     if (!plateValue || plateValue.trim() === "") {
       toast.error("Please enter a license plate");
@@ -126,34 +128,50 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
         return;
       }
       
-      if (!data.make && !data.model) {
+      // Check if we have meaningful data
+      const hasData = data.make || data.model || data.vin || data.year;
+      
+      if (!hasData) {
         setLookupError("No vehicle details found for this plate");
         toast.error("No vehicle details found for this plate");
         return;
       }
       
       // Update form fields with fetched data
+      let fieldsUpdated = 0;
+      
       if (data.make) {
         form.setValue("make", data.make);
+        fieldsUpdated++;
       }
       
       if (data.model) {
         form.setValue("model", data.model);
+        fieldsUpdated++;
       }
       
       if (data.year) {
         form.setValue("year", data.year);
+        fieldsUpdated++;
       }
       
       if (data.vin) {
         form.setValue("vin", data.vin);
+        fieldsUpdated++;
       }
       
+      // Trigger validation after setting values
+      if (data.make) form.trigger("make");
+      if (data.model) form.trigger("model");
+      if (data.year) form.trigger("year");
+      
       // Only show success toast if we actually filled in some data
-      if (data.make || data.model || data.year || data.vin) {
+      if (fieldsUpdated > 0) {
+        setLookupSuccess(true);
         toast.success("Vehicle found! Information filled in automatically.");
       } else {
-        toast.info("Vehicle found, but no detailed information available.");
+        setLookupError("Vehicle found, but limited information available");
+        toast.info("Vehicle found, but limited information available.");
       }
       
     } catch (error) {
@@ -205,6 +223,10 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
                       <div className="flex items-center gap-2 text-sm text-red-500 mt-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{lookupError}</span>
+                      </div>
+                    ) : lookupSuccess ? (
+                      <div className="flex items-center gap-2 text-sm text-green-500 mt-1">
+                        <span>Vehicle details retrieved successfully</span>
                       </div>
                     ) : (
                       <FormDescription>
