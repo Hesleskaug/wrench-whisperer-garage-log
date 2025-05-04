@@ -1,5 +1,5 @@
 
-import { Flag } from 'lucide-react';
+import React from 'react';
 
 interface NorwegianPlateProps {
   plate: string | undefined;
@@ -15,9 +15,9 @@ const NorwegianPlate = ({ plate, className = '' }: NorwegianPlateProps) => {
   const formattedPlate = plate.toUpperCase();
 
   return (
-    <div className={`flex items-stretch overflow-hidden ${className}`} style={{ height: '24px' }}>
+    <div className={`flex items-stretch overflow-hidden rounded-sm ${className}`} style={{ height: '24px' }}>
       {/* Blue section with flag and 'N' */}
-      <div className="bg-[#0E3F99] text-white flex flex-col items-center justify-between px-1 py-0.5" style={{ minWidth: '20px' }}>
+      <div className="bg-[#002868] text-white flex flex-col items-center justify-between px-1 py-0.5" style={{ minWidth: '20px' }}>
         {/* Norwegian flag */}
         <div className="relative" style={{ width: '14px', height: '8px' }}>
           <div className="absolute inset-0 bg-[#EF2B2D]"></div>
@@ -29,8 +29,8 @@ const NorwegianPlate = ({ plate, className = '' }: NorwegianPlateProps) => {
       </div>
       
       {/* White section with plate number */}
-      <div className="bg-white border border-gray-300 flex items-center justify-center px-2 py-0.5 flex-grow">
-        <span className="text-black font-mono font-bold tracking-wider">{formattedPlate}</span>
+      <div className="bg-white border border-[#d0d0d0] flex items-center justify-center px-2 py-0.5 flex-grow">
+        <span className="text-black font-mono font-bold tracking-wider text-sm">{formattedPlate}</span>
       </div>
     </div>
   );
