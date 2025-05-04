@@ -156,7 +156,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_current_garage_id: {
+        Args: { garage_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

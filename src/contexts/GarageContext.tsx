@@ -79,6 +79,21 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     return storedLogs ? JSON.parse(storedLogs) : [];
   };
 
+  // Set the current garage ID in Supabase for RLS
+  const setCurrentGarageId = async (garageId: string) => {
+    try {
+      const { error } = await supabase.rpc('set_current_garage_id', { garage_id: garageId });
+      if (error) {
+        console.error('Error setting current garage ID:', error);
+        throw error;
+      }
+      console.log('Successfully set current garage ID for RLS');
+    } catch (error) {
+      console.error('Exception setting current garage ID:', error);
+      throw error;
+    }
+  };
+
   // Function to save vehicles to Supabase with better RLS handling
   const syncVehicles = async (vehicles: Vehicle[]) => {
     if (!garageId) {
@@ -91,8 +106,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     console.log('Vehicles saved to localStorage:', vehicles);
     
     try {
-      // Generate a UUID for the user_id once - use the garageId as user_id for RLS purposes
-      const userId = garageId;
+      // Set the current garage ID for RLS
+      await setCurrentGarageId(garageId);
       
       // Format vehicles for Supabase insert
       const vehiclesToInsert = vehicles.map(vehicle => ({
@@ -106,11 +121,12 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         image_url: vehicle.image || null,
         notes: vehicle.notes || null,
         garage_id: garageId,
-        user_id: userId,
+        user_id: garageId, // Using garageId as user_id for RLS purposes
       }));
       
       // Try to delete existing vehicles for this garage first
       try {
+        await setCurrentGarageId(garageId); // Set again to ensure it's set for this operation
         const { error: deleteError } = await supabase
           .from('vehicles')
           .delete()
@@ -133,6 +149,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         for (let i = 0; i < vehiclesToInsert.length; i += batchSize) {
           const batch = vehiclesToInsert.slice(i, i + batchSize);
           try {
+            await setCurrentGarageId(garageId); // Set again to ensure it's set for this batch
             const { error: insertError } = await supabase
               .from('vehicles')
               .insert(batch);
@@ -169,6 +186,9 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Set the current garage ID for RLS
+      await setCurrentGarageId(garageId);
+      
       // Try to fetch from Supabase
       const { data, error } = await supabase
         .from('vehicles')

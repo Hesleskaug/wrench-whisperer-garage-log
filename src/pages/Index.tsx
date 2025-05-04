@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
@@ -18,6 +17,7 @@ const Index = () => {
     serviceLogs, 
     isLoading, 
     isSyncing,
+    lastSyncAttempt,
     handleAddVehicle, 
     handleAddServiceLog,
     updateVehicleMileage,
@@ -50,11 +50,34 @@ const Index = () => {
     }
   };
 
+  // Format the last sync time for display
+  const formatLastSync = () => {
+    if (!lastSyncAttempt) return null;
+    
+    // If less than 1 minute ago, show 'Just now'
+    const diffMs = new Date().getTime() - lastSyncAttempt.getTime();
+    if (diffMs < 60000) return 'Just now';
+    
+    // For times less than an hour ago, show minutes
+    if (diffMs < 3600000) {
+      const mins = Math.floor(diffMs / 60000);
+      return `${mins}m ago`;
+    }
+    
+    // Otherwise show the time
+    return lastSyncAttempt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="container py-8">
       <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
       
       <div className="mb-4 flex items-center justify-end">
+        <div className="text-xs text-muted-foreground mr-2">
+          {lastSyncAttempt && !isSyncing && (
+            <span>Last sync: {formatLastSync()}</span>
+          )}
+        </div>
         <Button 
           variant="outline" 
           size="sm" 
