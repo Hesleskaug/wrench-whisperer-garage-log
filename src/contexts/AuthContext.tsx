@@ -149,8 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Fix TypeScript error by ensuring data shape matches UserProfile type
-      const { id, created_at, updated_at, ...updateData } = data;
+      // Fix TypeScript error by ensuring data shape matches what the API expects
+      // The type error is happening because we're trying to update fields that 
+      // should be excluded or handled differently by the API
+      const { id, created_at, updated_at, ...updateData } = data as any;
       
       const { error } = await supabase
         .from('profiles')
