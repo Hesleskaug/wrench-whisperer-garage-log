@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Receipt, Mic, Plus, X, Upload, Camera, Save, Copy, Clock } from "lucide-react";
+import { CalendarIcon, Receipt, Mic, Plus, X, Upload, Camera, Save, Copy, Clock, PackagePlus, Tag } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import TaskDialog from "./TaskDialog"; // Import the new TaskDialog component
+import TaskDialog from "./TaskDialog";
 
 // Define service templates
 const serviceTemplates = {
@@ -112,8 +112,7 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required"),
   nextDueMileage: z.coerce.number().int().min(0, "Next due mileage must be a positive number").optional(),
   nextDueDate: z.date().optional(),
-  laborHours: z.coerce.number().min(0).optional(),
-  laborRate: z.coerce.number().min(0).optional(),
+  totalCost: z.coerce.number().min(0).optional(),
 });
 
 interface ServiceLogFormProps {
@@ -150,6 +149,7 @@ const ServiceLogForm = ({
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [serviceReferences, setServiceReferences] = useState<{label: string, value: string}[]>([]);
+  const [totalCost, setTotalCost] = useState<number>(0);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -160,8 +160,7 @@ const ServiceLogForm = ({
       description: "",
       nextDueMileage: undefined,
       nextDueDate: undefined,
-      laborHours: undefined,
-      laborRate: undefined,
+      totalCost: 0,
     },
   });
   
@@ -182,18 +181,13 @@ const ServiceLogForm = ({
         form.setValue('nextDueDate', new Date(editingLog.nextDueDate));
       }
       
-      // Extract labor hours and rate from the cost if available
-      // This is an approximation since we don't store these separately
-      const laborCost = editingLog.cost ? editingLog.cost / 2 : undefined;
-      if (laborCost) {
-        form.setValue('laborHours', 1);
-        form.setValue('laborRate', laborCost);
-      }
+      form.setValue('totalCost', editingLog.cost || 0);
+      setTotalCost(editingLog.cost || 0);
       
       // Set parts from the editing log
       if (editingLog.parts && editingLog.parts.length) {
         const parsedParts = editingLog.parts.map((part, idx) => {
-          // Try to extract quantity from format like "Oil filter (1)"
+          // Try to extract quantity and name
           const matches = part.match(/(.*)\s*\((\d+)\)$/);
           if (matches && matches.length > 2) {
             return {
@@ -225,8 +219,8 @@ const ServiceLogForm = ({
       form.setValue('description', '');
       form.setValue('nextDueMileage', undefined);
       form.setValue('nextDueDate', undefined);
-      form.setValue('laborHours', undefined);
-      form.setValue('laborRate', undefined);
+      form.setValue('totalCost', 0);
+      setTotalCost(0);
       setParts([]);
       setTasks([]);
     }
@@ -240,11 +234,6 @@ const ServiceLogForm = ({
         toast.error("Vehicle is not selected");
         return;
       }
-      
-      // Calculate total cost
-      const partsCost = parts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
-      const laborCost = (data.laborHours || 0) * (data.laborRate || 0);
-      const totalCost = partsCost + laborCost;
       
       // Create parts array from the parts state
       const partsArray = parts.map(part => `${part.name} (${part.quantity})`);
@@ -302,6 +291,7 @@ const ServiceLogForm = ({
     setTasks([]);
     setServiceReferences([]);
     setIsSubmitting(false);
+    setTotalCost(0);
   };
   
   // Handle service type template selection
@@ -311,32 +301,34 @@ const ServiceLogForm = ({
     const template = serviceTemplates[value as keyof typeof serviceTemplates];
     if (template) {
       form.setValue("description", template.description);
-      setParts(template.parts.map((part, idx) => ({
+      const templateParts = template.parts.map((part, idx) => ({
         id: `part-${Date.now()}-${idx}`,
         name: part.name,
         quantity: part.quantity,
         price: part.price
-      })));
+      }));
+      setParts(templateParts);
       setServiceReferences(template.reference);
+      
+      // Calculate total cost from template parts
+      const newTotalCost = templateParts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
+      setTotalCost(newTotalCost);
+      form.setValue("totalCost", newTotalCost);
     } else {
       setServiceReferences([]);
     }
   };
   
-  // Add a task using the new TaskDialog component
+  // Add a task using the TaskDialog component
   const addTask = (task: ServiceTask) => {
     setTasks([...tasks, task]);
     toast.success("Task added successfully");
   };
-
-  // Calculate total cost
-  const calculateTotalCost = () => {
-    const partsCost = parts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
-    const laborRate = form.getValues('laborRate') || 0;
-    const laborHours = form.getValues('laborHours') || 0;
-    const laborCost = laborRate * laborHours;
-    
-    return partsCost + laborCost;
+  
+  // Update the total cost
+  const updateTotalCost = (newCost: number) => {
+    setTotalCost(newCost);
+    form.setValue('totalCost', newCost);
   };
   
   // Toggle voice recording for description
@@ -372,11 +364,23 @@ const ServiceLogForm = ({
     setParts(parts.map(part => 
       part.id === id ? { ...part, [field]: value } : part
     ));
+    
+    // Recalculate total cost whenever a part is updated
+    const updatedParts = parts.map(part => 
+      part.id === id ? { ...part, [field]: value } : part
+    );
+    const newTotalCost = updatedParts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
+    updateTotalCost(newTotalCost);
   };
   
   // Remove a part
   const removePart = (id: string) => {
-    setParts(parts.filter(part => part.id !== id));
+    const filteredParts = parts.filter(part => part.id !== id);
+    setParts(filteredParts);
+    
+    // Recalculate total cost
+    const newTotalCost = filteredParts.reduce((sum, part) => sum + (part.quantity * part.price), 0);
+    updateTotalCost(newTotalCost);
   };
   
   // Add a checklist item
@@ -402,12 +406,6 @@ const ServiceLogForm = ({
   // Remove a checklist item
   const removeChecklistItem = (id: string) => {
     setChecklist(checklist.filter(item => item.id !== id));
-  };
-  
-  // Handle receipt data changes
-  const handleReceiptDataChange = (data: { note: string; websiteUrl: string }) => {
-    setReceiptNote(data.note);
-    setReceiptWebsiteUrl(data.websiteUrl);
   };
 
   return (
@@ -485,6 +483,46 @@ const ServiceLogForm = ({
                 />
               </div>
 
+              {/* Service Tasks Section - Moved Higher */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="flex items-center gap-2">
+                    <Tag size={16} className="text-mechanic-blue" />
+                    Service Tasks <span className="text-xs text-muted-foreground">(Equipment needed for job shown as tags)</span>
+                  </Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTaskDialogOpen(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus size={16} /> Add Task
+                  </Button>
+                </div>
+
+                {tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tasks added yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.map((task) => (
+                      <div key={task.id} className="p-3 border rounded-md bg-gray-50">
+                        <p className="font-medium">{task.description}</p>
+                        {task.toolsRequired && task.toolsRequired.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {task.toolsRequired.map((tool, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {tool}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <FormField
                 control={form.control}
                 name="serviceType"
@@ -541,10 +579,13 @@ const ServiceLogForm = ({
                 )}
               />
               
-              {/* Parts Used - Repeatable rows */}
+              {/* Parts Used - Improved with Labels */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <Label>Parts Used</Label>
+                  <Label className="flex items-center gap-2">
+                    <PackagePlus size={16} className="text-mechanic-blue" />
+                    Parts Used
+                  </Label>
                   <Button 
                     type="button" 
                     size="sm" 
@@ -559,81 +600,73 @@ const ServiceLogForm = ({
                 {parts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No parts added yet.</p>
                 ) : (
-                  <div className="space-y-2">
-                    {parts.map((part) => (
-                      <div key={part.id} className="flex items-center gap-2">
-                        <Input
-                          value={part.name}
-                          onChange={(e) => updatePart(part.id, 'name', e.target.value)}
-                          placeholder="Part name"
-                          className="flex-grow"
-                        />
-                        <Input
-                          type="number"
-                          value={part.quantity}
-                          onChange={(e) => updatePart(part.id, 'quantity', parseInt(e.target.value) || 0)}
-                          placeholder="Qty"
-                          className="w-16"
-                        />
-                        <Input
-                          type="number"
-                          value={part.price}
-                          onChange={(e) => updatePart(part.id, 'price', parseFloat(e.target.value) || 0)}
-                          placeholder="Price"
-                          className="w-24"
-                        />
-                        <Button 
-                          type="button" 
-                          size="icon" 
-                          variant="ghost" 
-                          onClick={() => removePart(part.id)}
-                        >
-                          <X size={16} />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    {/* Parts table header */}
+                    <div className="grid grid-cols-[3fr,1fr,1fr,auto] gap-2 mb-1 px-3 text-sm text-muted-foreground">
+                      <div>Part Name</div>
+                      <div>Quantity</div>
+                      <div>Price</div>
+                      <div></div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {parts.map((part) => (
+                        <div key={part.id} className="grid grid-cols-[3fr,1fr,1fr,auto] gap-2 items-center">
+                          <Input
+                            value={part.name}
+                            onChange={(e) => updatePart(part.id, 'name', e.target.value)}
+                            placeholder="Part name"
+                          />
+                          <Input
+                            type="number"
+                            value={part.quantity}
+                            min="1"
+                            onChange={(e) => updatePart(part.id, 'quantity', parseInt(e.target.value) || 1)}
+                            placeholder="Qty"
+                          />
+                          <Input
+                            type="number"
+                            value={part.price}
+                            min="0"
+                            step="0.01"
+                            onChange={(e) => updatePart(part.id, 'price', parseFloat(e.target.value) || 0)}
+                            placeholder="Price"
+                          />
+                          <Button 
+                            type="button" 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={() => removePart(part.id)}
+                          >
+                            <X size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
               
-              {/* Labor inputs */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="laborHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Labor Hours</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.5" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="laborRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Labor Rate (per hour)</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Total cost summary */}
-              <div className="bg-gray-50 p-3 rounded-md">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Total Cost:</span>
-                  <span className="text-lg font-bold">{calculateTotalCost().toFixed(2)}</span>
-                </div>
-              </div>
+              {/* Total cost input */}
+              <FormField
+                control={form.control}
+                name="totalCost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Cost</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={totalCost}
+                        onChange={(e) => updateTotalCost(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               {/* Checklist */}
               <div>
@@ -766,43 +799,6 @@ const ServiceLogForm = ({
                 </div>
               </div>
               
-              {/* Service Tasks Section */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Service Tasks</Label>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setTaskDialogOpen(true)}
-                    className="flex items-center gap-1"
-                  >
-                    <Plus size={16} /> Add Task
-                  </Button>
-                </div>
-
-                {tasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No tasks added yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {tasks.map((task) => (
-                      <div key={task.id} className="p-3 border rounded-md bg-gray-50">
-                        <p className="font-medium">{task.description}</p>
-                        {task.toolsRequired && task.toolsRequired.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {task.toolsRequired.map((tool, i) => (
-                              <Badge key={i} variant="outline" className="text-xs">
-                                {tool}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
               {/* Reference information */}
               {serviceReferences.length > 0 && (
                 <div className="border-t pt-3">
@@ -857,7 +853,7 @@ const ServiceLogForm = ({
         </DialogContent>
       </Dialog>
       
-      {/* Use our new TaskDialog component */}
+      {/* Use TaskDialog component */}
       <TaskDialog 
         open={taskDialogOpen} 
         onOpenChange={setTaskDialogOpen} 
