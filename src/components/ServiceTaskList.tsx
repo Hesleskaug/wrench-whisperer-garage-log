@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { ServiceTask } from '@/utils/mockData';
-import { Check, Clock, FileText, Wrench, Pencil, Spanner } from 'lucide-react';
+import { Check, Clock, FileText, Wrench, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskImageGallery from './TaskImageGallery';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -145,7 +144,7 @@ const ServiceTaskList = ({ tasks, className, serviceLogId, onTaskUpdate }: Servi
                 {task.toolsRequired && task.toolsRequired.length > 0 && (
                   <div className="mt-2">
                     <div className="text-xs font-medium text-mechanic-gray mb-1 flex items-center gap-1">
-                      <Spanner size={14} className="text-mechanic-gray" /> {t('equipmentNeeded')}:
+                      <Wrench size={14} className="text-mechanic-gray" /> {t('equipmentNeeded')}:
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {task.toolsRequired.map((tool, index) => (
