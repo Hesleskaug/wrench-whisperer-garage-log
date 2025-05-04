@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +67,20 @@ interface PartItem {
   price: number;
 }
 
+// Define how-to step type
+interface HowToStep {
+  id: string;
+  text: string;
+}
+
+// Define torque specification item type
+interface TorqueSpecItem {
+  id: string;
+  description: string;
+  value: string;
+  unit: string;
+}
+
 interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -83,11 +98,14 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
   // Task details
   const [taskPreset, setTaskPreset] = useState("custom");
   const [taskDescription, setTaskDescription] = useState('');
-  const [taskHowTo, setTaskHowTo] = useState('');
+  const [howToSteps, setHowToSteps] = useState<HowToStep[]>([]);
+  const [newStepInput, setNewStepInput] = useState('');
   const [taskTools, setTaskTools] = useState<string[]>([]);
   const [newToolInput, setNewToolInput] = useState('');
-  const [taskTorque, setTaskTorque] = useState('');
-  const [torqueUnit, setTorqueUnit] = useState('Nm');
+  const [torqueSpecs, setTorqueSpecs] = useState<TorqueSpecItem[]>([]);
+  const [newTorqueDescription, setNewTorqueDescription] = useState('');
+  const [newTorqueValue, setNewTorqueValue] = useState('');
+  const [newTorqueUnit, setNewTorqueUnit] = useState('Nm');
   const [taskImages, setTaskImages] = useState<string[]>([]);
   const [saveAsPreset, setSaveAsPreset] = useState(false);
   
@@ -109,8 +127,16 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
       if (preset) {
         setTaskDescription(preset.description);
         setTaskTools(preset.tools);
-        setTaskTorque(preset.torque);
-        setTorqueUnit(preset.torqueUnit);
+        
+        // Convert the single torque spec into the new format
+        if (preset.torque) {
+          setTorqueSpecs([{
+            id: `torque-${Date.now()}`,
+            description: preset.description,
+            value: preset.torque,
+            unit: preset.torqueUnit
+          }]);
+        }
       }
     }
   }, [taskPreset]);
@@ -119,14 +145,30 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
   useEffect(() => {
     if (editingTask) {
       setTaskDescription(editingTask.description);
-      setTaskHowTo(editingTask.notes || '');
+      
+      // Convert notes to how-to steps if any exist
+      if (editingTask.notes) {
+        const steps = editingTask.notes.split('\n')
+          .filter(step => step.trim().length > 0)
+          .map((step, index) => ({
+            id: `step-${Date.now()}-${index}`,
+            text: step.trim().replace(/^\d+\.\s+/, '') // Remove number prefixes if they exist
+          }));
+        setHowToSteps(steps);
+      }
+      
       setTaskTools(editingTask.toolsRequired || []);
       
+      // Convert torque spec to new format if it exists
       if (editingTask.torqueSpec) {
         const torqueParts = editingTask.torqueSpec.split(' ');
         if (torqueParts.length === 2) {
-          setTaskTorque(torqueParts[0]);
-          setTorqueUnit(torqueParts[1]);
+          setTorqueSpecs([{
+            id: `torque-${Date.now()}`,
+            description: editingTask.description || 'Default',
+            value: torqueParts[0],
+            unit: torqueParts[1]
+          }]);
         }
       }
       
@@ -149,6 +191,38 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
     }
   }, [editingTask]);
   
+  // Handle how-to step input
+  const addStep = () => {
+    if (newStepInput.trim()) {
+      const newStep: HowToStep = {
+        id: `step-${Date.now()}`,
+        text: newStepInput.trim()
+      };
+      setHowToSteps([...howToSteps, newStep]);
+      setNewStepInput('');
+    }
+  };
+  
+  const removeStep = (id: string) => {
+    setHowToSteps(howToSteps.filter(step => step.id !== id));
+  };
+  
+  const moveStepUp = (index: number) => {
+    if (index > 0) {
+      const updatedSteps = [...howToSteps];
+      [updatedSteps[index], updatedSteps[index - 1]] = [updatedSteps[index - 1], updatedSteps[index]];
+      setHowToSteps(updatedSteps);
+    }
+  };
+  
+  const moveStepDown = (index: number) => {
+    if (index < howToSteps.length - 1) {
+      const updatedSteps = [...howToSteps];
+      [updatedSteps[index], updatedSteps[index + 1]] = [updatedSteps[index + 1], updatedSteps[index]];
+      setHowToSteps(updatedSteps);
+    }
+  };
+  
   // Handle tool input
   const addTool = () => {
     if (newToolInput.trim() && !taskTools.includes(newToolInput.trim())) {
@@ -161,21 +235,28 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
     setTaskTools(taskTools.filter(t => t !== tool));
   };
   
-  // Simulate paste from clipboard
-  const pasteFromClipboard = () => {
-    navigator.clipboard.readText()
-      .then(text => {
-        setTaskHowTo(prev => prev + text);
-        toast.success("Content pasted from clipboard");
-      })
-      .catch(() => {
-        toast.error("Could not read clipboard contents");
-      });
+  // Handle torque specification
+  const addTorqueSpec = () => {
+    if (newTorqueValue.trim()) {
+      const newSpec: TorqueSpecItem = {
+        id: `torque-${Date.now()}`,
+        description: newTorqueDescription.trim() || 'General',
+        value: newTorqueValue.trim(),
+        unit: newTorqueUnit
+      };
+      setTorqueSpecs([...torqueSpecs, newSpec]);
+      setNewTorqueDescription('');
+      setNewTorqueValue('');
+    }
   };
   
-  // Handle copy torque to clipboard
-  const copyTorqueToClipboard = () => {
-    const torqueText = `${taskTorque} ${torqueUnit}`;
+  const removeTorqueSpec = (id: string) => {
+    setTorqueSpecs(torqueSpecs.filter(spec => spec.id !== id));
+  };
+  
+  // Copy torque spec to clipboard
+  const copyTorqueSpecToClipboard = (spec: TorqueSpecItem) => {
+    const torqueText = `${spec.description}: ${spec.value} ${spec.unit}`;
     navigator.clipboard.writeText(torqueText);
     toast.success("Copied to clipboard");
   };
@@ -218,11 +299,14 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
   const resetForm = () => {
     setTaskPreset('custom');
     setTaskDescription('');
-    setTaskHowTo('');
+    setHowToSteps([]);
+    setNewStepInput('');
     setTaskTools([]);
     setNewToolInput('');
-    setTaskTorque('');
-    setTorqueUnit('Nm');
+    setTorqueSpecs([]);
+    setNewTorqueDescription('');
+    setNewTorqueValue('');
+    setNewTorqueUnit('Nm');
     setTaskImages([]);
     setParts([]);
     setReceiptStore('');
@@ -238,13 +322,23 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
   const addTask = (andNew: boolean = false) => {
     const totalCost = calculateTotalCost();
     
+    // Convert how-to steps to a formatted string
+    const formattedHowTo = howToSteps.length > 0 
+      ? howToSteps.map((step, index) => `${index + 1}. ${step.text}`).join('\n')
+      : undefined;
+    
+    // Combine all torque specifications
+    const combinedTorqueSpec = torqueSpecs.length > 0 
+      ? torqueSpecs.map(spec => `${spec.description}: ${spec.value} ${spec.unit}`).join('\n')
+      : undefined;
+    
     const newTask: ServiceTask = {
-      id: `task-${Date.now()}`,
+      id: editingTask?.id || `task-${Date.now()}`,
       description: taskDescription,
-      completed: true,
-      notes: taskHowTo || undefined,
+      completed: editingTask?.completed !== undefined ? editingTask.completed : true,
+      notes: formattedHowTo,
       toolsRequired: taskTools.length > 0 ? [...taskTools] : undefined,
-      torqueSpec: taskTorque ? `${taskTorque} ${torqueUnit}` : undefined,
+      torqueSpec: combinedTorqueSpec,
       receipt: parts.length > 0 ? {
         store: receiptStore,
         images: receiptImages.length > 0 ? [...receiptImages] : undefined,
@@ -319,26 +413,71 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
             />
           </div>
           
+          {/* New How-to Steps UI */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="task-howto">How-to Tips</Label>
+            <Label>How-to Steps</Label>
+            <div className="space-y-2">
+              {howToSteps.map((step, index) => (
+                <div key={step.id} className="flex items-center gap-2">
+                  <div className="bg-mechanic-blue/10 text-mechanic-blue rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="flex-grow px-3 py-1.5 bg-gray-50 rounded-md border">
+                    {step.text}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8"
+                      onClick={() => moveStepUp(index)}
+                      disabled={index === 0}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m18 15-6-6-6 6"/>
+                      </svg>
+                    </Button>
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8"
+                      onClick={() => moveStepDown(index)}
+                      disabled={index === howToSteps.length - 1}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                      </svg>
+                    </Button>
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8"
+                      onClick={() => removeStep(step.id)}
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add a step..."
+                value={newStepInput}
+                onChange={(e) => setNewStepInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addStep())}
+              />
               <Button 
                 type="button" 
-                size="icon" 
-                variant="ghost"
-                onClick={pasteFromClipboard}
-                title="Paste from clipboard"
+                variant="outline"
+                onClick={addStep}
               >
-                <Clipboard size={16} />
+                Add
               </Button>
             </div>
-            <Textarea
-              id="task-howto"
-              placeholder="e.g. Start by loosening the drain plug..."
-              value={taskHowTo}
-              onChange={(e) => setTaskHowTo(e.target.value)}
-              className="resize-none"
-            />
           </div>
           
           <div className="space-y-2">
@@ -375,38 +514,85 @@ const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogPr
             </div>
           </div>
           
+          {/* Enhanced Torque Specifications */}
           <div className="space-y-2">
-            <Label htmlFor="task-torque">Torque Specification</Label>
-            <div className="flex gap-2 items-center">
-              <Input
-                id="task-torque"
-                type="number"
-                placeholder="e.g. 25"
-                value={taskTorque}
-                onChange={(e) => setTaskTorque(e.target.value)}
-                className="w-24"
-              />
-              <Select 
-                value={torqueUnit}
-                onValueChange={setTorqueUnit}
-              >
-                <SelectTrigger className="w-24">
-                  <SelectValue placeholder="Unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Nm">Nm</SelectItem>
-                  <SelectItem value="ft-lb">ft-lb</SelectItem>
-                </SelectContent>
-              </Select>
+            <Label>Torque Specifications</Label>
+            <div className="space-y-2">
+              {torqueSpecs.map((spec) => (
+                <div key={spec.id} className="bg-gray-50 rounded-md border p-2 flex justify-between items-center">
+                  <div className="flex-grow">
+                    <div className="font-medium text-sm">{spec.description}</div>
+                    <div className="text-mechanic-blue font-bold">{spec.value} {spec.unit}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost"
+                      onClick={() => copyTorqueSpecToClipboard(spec)}
+                      title="Copy to clipboard"
+                      className="h-8 w-8"
+                    >
+                      <Copy size={16} />
+                    </Button>
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => removeTorqueSpec(spec.id)}
+                      className="h-8 w-8"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border rounded-md p-3 space-y-2 bg-gray-50/50">
+              <div className="space-y-2">
+                <Label htmlFor="torque-description">Description</Label>
+                <Input
+                  id="torque-description"
+                  placeholder="e.g. Oil drain plug, Wheel lug nut"
+                  value={newTorqueDescription}
+                  onChange={(e) => setNewTorqueDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className="flex-grow">
+                  <Label htmlFor="torque-value">Value</Label>
+                  <Input
+                    id="torque-value"
+                    type="number"
+                    placeholder="e.g. 25"
+                    value={newTorqueValue}
+                    onChange={(e) => setNewTorqueValue(e.target.value)}
+                  />
+                </div>
+                <div className="w-24">
+                  <Label htmlFor="torque-unit">Unit</Label>
+                  <Select 
+                    value={newTorqueUnit}
+                    onValueChange={setNewTorqueUnit}
+                  >
+                    <SelectTrigger id="torque-unit" className="w-full">
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Nm">Nm</SelectItem>
+                      <SelectItem value="ft-lb">ft-lb</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <Button 
                 type="button" 
-                size="icon" 
-                variant="ghost"
-                onClick={copyTorqueToClipboard}
-                disabled={!taskTorque}
-                title="Copy to clipboard"
+                variant="outline" 
+                className="w-full mt-2"
+                onClick={addTorqueSpec}
+                disabled={!newTorqueValue.trim()}
               >
-                <Copy size={16} />
+                <Plus size={16} className="mr-1" /> Add Torque Specification
               </Button>
             </div>
           </div>
