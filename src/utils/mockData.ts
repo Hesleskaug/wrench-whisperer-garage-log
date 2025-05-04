@@ -10,6 +10,15 @@ export interface Vehicle {
   image?: string;
 }
 
+export interface ServiceTask {
+  id: string;
+  description: string;
+  completed: boolean;
+  notes?: string;
+  toolsRequired?: string[];
+  torqueSpec?: string;
+}
+
 export interface ServiceLog {
   id: string;
   vehicleId: string;
@@ -19,6 +28,7 @@ export interface ServiceLog {
   description: string;
   parts?: string[];
   cost?: number;
+  tasks?: ServiceTask[];
 }
 
 export interface VehicleSpecs {
@@ -75,7 +85,49 @@ export const mockServiceLogs: ServiceLog[] = [
     serviceType: 'Oil Change',
     description: 'Changed oil and filter',
     parts: ['Oil filter', '5L Castrol Edge 5W-30'],
-    cost: 1200
+    cost: 1200,
+    tasks: [
+      { 
+        id: '1-1', 
+        description: 'Place oil drain pan under the oil pan', 
+        completed: true 
+      },
+      { 
+        id: '1-2', 
+        description: 'Remove oil drain plug (17mm socket)', 
+        completed: true,
+        torqueSpec: '25 Nm',
+        toolsRequired: ['17mm socket', 'Torque wrench', 'Oil drain pan']
+      },
+      { 
+        id: '1-3', 
+        description: 'Remove oil filter using oil filter wrench', 
+        completed: true,
+        toolsRequired: ['Oil filter wrench']
+      },
+      { 
+        id: '1-4', 
+        description: 'Install new oil filter (pre-fill with oil and lubricate gasket)', 
+        completed: true 
+      },
+      { 
+        id: '1-5', 
+        description: 'Reinstall drain plug with new washer', 
+        completed: true,
+        torqueSpec: '25 Nm',
+        notes: 'Always use a new crush washer'
+      },
+      { 
+        id: '1-6', 
+        description: 'Fill with 5L of new oil', 
+        completed: true 
+      },
+      { 
+        id: '1-7', 
+        description: 'Start engine and check for leaks', 
+        completed: true 
+      }
+    ]
   },
   {
     id: '2',
@@ -85,7 +137,66 @@ export const mockServiceLogs: ServiceLog[] = [
     serviceType: 'Brake Service',
     description: 'Replaced front brake pads and rotors',
     parts: ['Brembo brake pads', 'Bosch rotors'],
-    cost: 3500
+    cost: 3500,
+    tasks: [
+      { 
+        id: '2-1', 
+        description: 'Jack up car and remove wheel', 
+        completed: true,
+        toolsRequired: ['Jack', 'Jack stands', '19mm socket']
+      },
+      { 
+        id: '2-2', 
+        description: 'Remove caliper bolts (14mm) and hang caliper with wire', 
+        completed: true,
+        torqueSpec: '28 Nm',
+        toolsRequired: ['14mm socket', 'Wire or bungee cord']
+      },
+      { 
+        id: '2-3', 
+        description: 'Remove caliper bracket bolts (17mm)', 
+        completed: true,
+        torqueSpec: '120 Nm',
+        toolsRequired: ['17mm socket', 'Breaker bar']
+      },
+      { 
+        id: '2-4', 
+        description: 'Remove old rotor (may need hammer if stuck)', 
+        completed: true,
+        toolsRequired: ['Rubber mallet']
+      },
+      { 
+        id: '2-5', 
+        description: 'Clean hub face and install new rotor', 
+        completed: true,
+        toolsRequired: ['Wire brush', 'Brake cleaner']
+      },
+      { 
+        id: '2-6', 
+        description: 'Install caliper bracket with new bolts', 
+        completed: true,
+        torqueSpec: '120 Nm',
+        notes: 'Apply thread locker to bolts'
+      },
+      { 
+        id: '2-7', 
+        description: 'Install new brake pads with anti-squeal paste on backs', 
+        completed: true 
+      },
+      { 
+        id: '2-8', 
+        description: 'Compress caliper piston and reinstall caliper', 
+        completed: true,
+        toolsRequired: ['Caliper piston tool or C-clamp']
+      },
+      { 
+        id: '2-9', 
+        description: 'Reinstall wheel and torque lug nuts in star pattern', 
+        completed: true,
+        torqueSpec: '140 Nm',
+        notes: 'Retorque after 50-100km of driving'
+      }
+    ]
   },
   {
     id: '3',
@@ -95,7 +206,27 @@ export const mockServiceLogs: ServiceLog[] = [
     serviceType: 'Regular Maintenance',
     description: 'Oil change, air filter replacement, and tire rotation',
     parts: ['Oil filter', 'Air filter', '4.5L Mobil 1 0W-20'],
-    cost: 1500
+    cost: 1500,
+    tasks: [
+      { 
+        id: '3-1', 
+        description: 'Change oil and filter', 
+        completed: true 
+      },
+      { 
+        id: '3-2', 
+        description: 'Replace air filter', 
+        completed: true,
+        notes: 'Filter located in airbox on driver side'
+      },
+      { 
+        id: '3-3', 
+        description: 'Rotate tires (front to back, same side)', 
+        completed: true,
+        torqueSpec: '103 Nm',
+        toolsRequired: ['Torque wrench', '21mm socket', 'Jack', 'Jack stands']
+      }
+    ]
   }
 ];
 

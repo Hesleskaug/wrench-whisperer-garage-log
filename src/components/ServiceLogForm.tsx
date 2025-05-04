@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, PlusCircle, X, Tool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Vehicle, ServiceLog } from "@/utils/mockData";
+import { Vehicle, ServiceLog, ServiceTask } from "@/utils/mockData";
 
 const formSchema = z.object({
   date: z.date(),
@@ -57,6 +57,14 @@ const ServiceLogForm = ({
   onAddServiceLog 
 }: ServiceLogFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tasks, setTasks] = useState<ServiceTask[]>([]);
+  const [currentTask, setCurrentTask] = useState({
+    description: "",
+    tools: "",
+    torqueSpec: "",
+    notes: "",
+  });
+  const [showTaskForm, setShowTaskForm] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,6 +77,35 @@ const ServiceLogForm = ({
       cost: undefined,
     },
   });
+
+  const handleAddTask = () => {
+    if (!currentTask.description.trim()) {
+      toast.error("Task description is required");
+      return;
+    }
+
+    const newTask: ServiceTask = {
+      id: Date.now().toString(),
+      description: currentTask.description,
+      completed: true,
+      notes: currentTask.notes || undefined,
+      torqueSpec: currentTask.torqueSpec || undefined,
+      toolsRequired: currentTask.tools ? currentTask.tools.split(',').map(tool => tool.trim()) : undefined
+    };
+
+    setTasks(prev => [...prev, newTask]);
+    setCurrentTask({
+      description: "",
+      tools: "",
+      torqueSpec: "",
+      notes: "",
+    });
+    toast.success("Task added");
+  };
+
+  const handleRemoveTask = (taskId: string) => {
+    setTasks(prev => prev.filter(task => task.id !== taskId));
+  };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     if (!vehicle) return;
@@ -89,6 +126,7 @@ const ServiceLogForm = ({
         description: data.description,
         parts,
         cost: data.cost,
+        tasks: tasks.length > 0 ? tasks : undefined,
       };
       
       // Adding a small delay to simulate an API call
@@ -104,6 +142,7 @@ const ServiceLogForm = ({
       }
       
       form.reset();
+      setTasks([]);
       onOpenChange(false);
     } catch (error) {
       console.error("Error adding service log:", error);
@@ -115,7 +154,7 @@ const ServiceLogForm = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle className="text-mechanic-blue">Log Service</DialogTitle>
           <DialogDescription>
@@ -249,6 +288,122 @@ const ServiceLogForm = ({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <Tool size={18} />
+                    <h3 className="font-medium">Service Tasks</h3>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowTaskForm(!showTaskForm)}
+                  >
+                    <PlusCircle size={16} className="mr-1" />
+                    Add Task
+                  </Button>
+                </div>
+
+                {showTaskForm && (
+                  <div className="space-y-3 mb-4 border-b pb-4">
+                    <div>
+                      <label className="text-sm font-medium">Task Description*</label>
+                      <Textarea 
+                        placeholder="e.g. Remove oil drain plug (17mm socket)" 
+                        className="resize-none mt-1"
+                        value={currentTask.description}
+                        onChange={(e) => setCurrentTask(prev => ({ ...prev, description: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Tools Required (comma separated)</label>
+                      <Input 
+                        placeholder="e.g. 17mm socket, Torque wrench" 
+                        className="mt-1"
+                        value={currentTask.tools}
+                        onChange={(e) => setCurrentTask(prev => ({ ...prev, tools: e.target.value }))}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium">Torque Spec</label>
+                        <Input 
+                          placeholder="e.g. 25 Nm"
+                          className="mt-1"
+                          value={currentTask.torqueSpec}
+                          onChange={(e) => setCurrentTask(prev => ({ ...prev, torqueSpec: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Notes</label>
+                        <Input 
+                          placeholder="Additional notes"
+                          className="mt-1"
+                          value={currentTask.notes}
+                          onChange={(e) => setCurrentTask(prev => ({ ...prev, notes: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        type="button" 
+                        onClick={handleAddTask}
+                        size="sm"
+                        className="bg-mechanic-blue hover:bg-mechanic-blue/90"
+                      >
+                        Add to List
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {tasks.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {tasks.map((task, index) => (
+                      <div key={task.id} className="flex items-start gap-2 bg-mechanic-silver/10 p-2 rounded text-sm">
+                        <div className="mt-0.5 flex-shrink-0 text-mechanic-gray">{index + 1}.</div>
+                        <div className="flex-1">
+                          <div className="font-medium">{task.description}</div>
+                          {task.toolsRequired && (
+                            <div className="text-xs text-mechanic-gray mt-1">
+                              Tools: {task.toolsRequired.join(', ')}
+                            </div>
+                          )}
+                          {(task.torqueSpec || task.notes) && (
+                            <div className="flex gap-2 mt-1">
+                              {task.torqueSpec && (
+                                <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                                  {task.torqueSpec}
+                                </span>
+                              )}
+                              {task.notes && (
+                                <span className="text-xs text-mechanic-gray italic">
+                                  {task.notes}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-mechanic-gray"
+                          onClick={() => handleRemoveTask(task.id)}
+                        >
+                          <X size={14} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-sm text-mechanic-gray">
+                    No tasks added yet. Add tasks to document your service procedure.
+                  </div>
+                )}
               </div>
 
               <DialogFooter className="pt-4">

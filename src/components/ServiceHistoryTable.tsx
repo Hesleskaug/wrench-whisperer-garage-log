@@ -11,6 +11,7 @@ import {
 import { Vehicle, ServiceLog } from "@/utils/mockData";
 import { printServiceHistory } from "@/utils/printUtils";
 import { FileText, Printer } from "lucide-react";
+import ServiceTaskList from "@/components/ServiceTaskList";
 
 interface ServiceHistoryTableProps {
   vehicle: Vehicle;
@@ -53,35 +54,42 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
         </Button>
       </div>
       
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Mileage</TableHead>
-              <TableHead>Service Type</TableHead>
-              <TableHead className="hidden md:table-cell">Description</TableHead>
-              <TableHead className="hidden md:table-cell">Parts</TableHead>
-              <TableHead>Cost</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedLogs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell>{new Date(log.date).toLocaleDateString()}</TableCell>
-                <TableCell>{log.mileage.toLocaleString()} km</TableCell>
-                <TableCell>{log.serviceType}</TableCell>
-                <TableCell className="hidden md:table-cell max-w-[200px] truncate">
-                  {log.description}
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {log.parts ? log.parts.join(", ") : "-"}
-                </TableCell>
-                <TableCell>{log.cost ? `${log.cost} kr` : "-"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="space-y-6">
+        {sortedLogs.map((log) => (
+          <div key={log.id} className="rounded-md border overflow-hidden">
+            <div className="bg-mechanic-silver/10 p-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                <div>
+                  <h4 className="font-medium text-mechanic-blue">{log.serviceType}</h4>
+                  <div className="text-sm text-mechanic-gray">
+                    {new Date(log.date).toLocaleDateString()} • {log.mileage.toLocaleString()} km
+                  </div>
+                </div>
+                <div className="text-right">
+                  {log.cost && <div className="font-medium">{log.cost} kr</div>}
+                </div>
+              </div>
+              <p className="mt-2 text-sm">{log.description}</p>
+              
+              {log.parts && log.parts.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs text-mechanic-gray font-medium mb-1">Parts used:</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {log.parts.map((part, index) => (
+                      <span key={index} className="bg-mechanic-silver/20 text-xs py-1 px-2 rounded">
+                        {part}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-3">
+                <ServiceTaskList tasks={log.tasks} />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
