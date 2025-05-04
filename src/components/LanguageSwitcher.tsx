@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { useLanguage, Language } from "@/contexts/LanguageContext";
-import { Flag } from "lucide-react";
 
 interface LanguageSwitcherProps {
   variant?: "default" | "ghost" | "outline" | "secondary";

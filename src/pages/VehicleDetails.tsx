@@ -10,13 +10,24 @@ import EditVehicleForm from "@/components/EditVehicleForm";
 import DeleteVehicleDialog from "@/components/DeleteVehicleDialog";
 import VehicleSpecsCard from "@/components/VehicleSpecsCard";
 import TaskImageUploader from "@/components/TaskImageUploader";
-import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2, Clock } from "lucide-react";
+import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2, Clock, Camera, Plus, Circle } from "lucide-react";
 import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/mockData";
 import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
 import { Badge } from "@/components/ui/badge";
 import NorwegianPlate from '@/components/NorwegianPlate';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+// Custom mileage type
+interface CustomMileageCounter {
+  id: string;
+  name: string;
+  value: number;
+  unit: "km" | "hours";
+}
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +47,15 @@ const VehicleDetails = () => {
   // State for image management
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [vehicleImages, setVehicleImages] = useState<string[]>([]);
+  
+  // New state for custom mileage counters
+  const [customMileageCounters, setCustomMileageCounters] = useState<CustomMileageCounter[]>([]);
+  const [newMileageDialogOpen, setNewMileageDialogOpen] = useState(false);
+  const [newMileageCounter, setNewMileageCounter] = useState<{name: string; value: number; unit: "km" | "hours"}>({
+    name: "",
+    value: 0,
+    unit: "km"
+  });
 
   // Format date for better display
   const formatDate = (dateStr: string | null) => {
@@ -46,6 +66,20 @@ const VehicleDetails = () => {
     } catch (e) {
       return dateStr;
     }
+  };
+
+  // Get fuel badge color based on fuel type
+  const getFuelBadgeColor = (fuelType: string | undefined) => {
+    if (!fuelType) return "bg-gray-100 text-gray-800";
+    
+    const fuelType_lower = fuelType.toLowerCase();
+    if (fuelType_lower.includes("diesel")) return "bg-black text-white";
+    if (fuelType_lower.includes("e5")) return "bg-green-100 text-green-800";
+    if (fuelType_lower.includes("e10")) return "bg-yellow-100 text-yellow-800";
+    if (fuelType_lower.includes("ev") || fuelType_lower.includes("electric")) return "bg-blue-100 text-blue-800";
+    if (fuelType_lower.includes("hybrid")) return "bg-purple-100 text-purple-800";
+    if (fuelType_lower.includes("lpg")) return "bg-orange-100 text-orange-800";
+    return "bg-gray-100 text-gray-800";
   };
 
   useEffect(() => {
@@ -96,6 +130,12 @@ const VehicleDetails = () => {
       
       // Look for specs in existing data
       setSpecs(vehicleSpecs);
+      
+      // Load custom mileage counters
+      const storedCustomMileage = localStorage.getItem(`custom_mileage_${foundVehicle.id}`);
+      if (storedCustomMileage) {
+        setCustomMileageCounters(JSON.parse(storedCustomMileage));
+      }
       
       // Simulate finding "community" specs based on make and model
       // In a real app, this would come from a database of community-contributed specs
@@ -246,6 +286,65 @@ const VehicleDetails = () => {
     navigate('/');
   };
 
+  // Handle adding new custom mileage counter
+  const handleAddMileageCounter = () => {
+    if (!vehicle || !garageId) return;
+    
+    // Validate input
+    if (!newMileageCounter.name.trim()) {
+      toast.error(t('pleaseEnterName'));
+      return;
+    }
+    
+    // Create new counter
+    const newCounter: CustomMileageCounter = {
+      id: Date.now().toString(),
+      name: newMileageCounter.name,
+      value: newMileageCounter.value,
+      unit: newMileageCounter.unit
+    };
+    
+    // Add to state
+    const updatedCounters = [...customMileageCounters, newCounter];
+    setCustomMileageCounters(updatedCounters);
+    
+    // Save to localStorage
+    localStorage.setItem(`custom_mileage_${vehicle.id}`, JSON.stringify(updatedCounters));
+    
+    // Reset form and close dialog
+    setNewMileageCounter({
+      name: "",
+      value: 0,
+      unit: "km"
+    });
+    setNewMileageDialogOpen(false);
+    
+    toast.success(t('mileageCounterAdded'));
+  };
+
+  // Update a custom mileage counter
+  const updateCustomMileageCounter = (id: string, value: number) => {
+    if (!vehicle || !garageId) return;
+    
+    const updatedCounters = customMileageCounters.map(counter => 
+      counter.id === id ? { ...counter, value } : counter
+    );
+    
+    setCustomMileageCounters(updatedCounters);
+    localStorage.setItem(`custom_mileage_${vehicle.id}`, JSON.stringify(updatedCounters));
+  };
+
+  // Delete a custom mileage counter
+  const deleteCustomMileageCounter = (id: string) => {
+    if (!vehicle || !garageId) return;
+    
+    const updatedCounters = customMileageCounters.filter(counter => counter.id !== id);
+    setCustomMileageCounters(updatedCounters);
+    localStorage.setItem(`custom_mileage_${vehicle.id}`, JSON.stringify(updatedCounters));
+    
+    toast.success(t('mileageCounterDeleted'));
+  };
+
   if (loading) {
     return (
       <div className="container py-8 text-center">
@@ -301,8 +400,20 @@ const VehicleDetails = () => {
                 </div>
               )}
               
-              {/* Image gallery controls */}
-              <div className="absolute bottom-2 right-2">
+              {/* Mobile camera icon overlay */}
+              <div className="absolute bottom-2 right-2 md:hidden">
+                <Button 
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => setIsUploadingImage(!isUploadingImage)}
+                  className="bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full shadow-md"
+                >
+                  <Camera size={20} />
+                </Button>
+              </div>
+              
+              {/* Desktop image gallery controls */}
+              <div className="absolute bottom-2 right-2 hidden md:block">
                 <Button 
                   variant="secondary" 
                   size="sm" 
@@ -382,6 +493,43 @@ const VehicleDetails = () => {
                   <span className="text-mechanic-gray">{t('currentMileage')}</span>
                   <span className="font-medium">{vehicle.mileage.toLocaleString()} km</span>
                 </div>
+                
+                {/* Custom mileage counters */}
+                {customMileageCounters.map((counter) => (
+                  <div key={counter.id} className="flex justify-between items-center">
+                    <span className="text-mechanic-gray">{counter.name}</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={counter.value}
+                        onChange={(e) => updateCustomMileageCounter(counter.id, parseInt(e.target.value) || 0)}
+                        className="w-24 text-right h-7 py-1"
+                      />
+                      <span className="text-sm text-mechanic-gray">{counter.unit}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-red-500 hover:text-red-600"
+                        onClick={() => deleteCustomMileageCounter(counter.id)}
+                      >
+                        <Circle className="h-3 w-3 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Add new mileage counter button */}
+                <div className="pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setNewMileageDialogOpen(true)}
+                    className="w-full flex items-center justify-center gap-1"
+                  >
+                    <Plus size={16} />
+                    {t('addMileageCounter')}
+                  </Button>
+                </div>
               </div>
               
               {/* Technical specifications section */}
@@ -402,7 +550,11 @@ const VehicleDetails = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-mechanic-gray">{t('fuelType')}</span>
-                      <span className="font-medium">{vehicleDetails.fuelType || "N/A"}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getFuelBadgeColor(vehicleDetails.fuelType)}>
+                          {vehicleDetails.fuelType || "N/A"}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-mechanic-gray">{t('transmission')}</span>
@@ -510,6 +662,57 @@ const VehicleDetails = () => {
         vehicle={vehicle}
         onDeleteVehicle={handleDeleteVehicle}
       />
+      
+      {/* New Mileage Counter Dialog */}
+      <Dialog open={newMileageDialogOpen} onOpenChange={setNewMileageDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('addMileageCounter')}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="counter-name">{t('name')}</Label>
+              <Input
+                id="counter-name"
+                value={newMileageCounter.name}
+                onChange={(e) => setNewMileageCounter({...newMileageCounter, name: e.target.value})}
+                placeholder={t('counterNamePlaceholder')}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="counter-value">{t('value')}</Label>
+                <Input
+                  id="counter-value"
+                  type="number"
+                  value={newMileageCounter.value}
+                  onChange={(e) => setNewMileageCounter({...newMileageCounter, value: parseInt(e.target.value) || 0})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="counter-unit">{t('unit')}</Label>
+                <select
+                  id="counter-unit"
+                  value={newMileageCounter.unit}
+                  onChange={(e) => setNewMileageCounter({...newMileageCounter, unit: e.target.value as "km" | "hours"})}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                >
+                  <option value="km">km</option>
+                  <option value="hours">{t('hours')}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setNewMileageDialogOpen(false)}>
+              {t('cancel')}
+            </Button>
+            <Button onClick={handleAddMileageCounter}>
+              {t('add')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
