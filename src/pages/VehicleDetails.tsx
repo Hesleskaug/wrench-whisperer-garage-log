@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -8,21 +7,41 @@ import ServiceHistoryTable from "@/components/ServiceHistoryTable";
 import ServiceLogForm from "@/components/ServiceLogForm";
 import VehicleSpecsCard from "@/components/VehicleSpecsCard";
 import { ArrowLeft, Wrench, CarFront, FileText } from "lucide-react";
-import { Vehicle, ServiceLog, VehicleSpecs, mockVehicles, mockServiceLogs, mockVehicleSpecs } from "@/utils/mockData";
+import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/mockData";
 import { toast } from "sonner";
+import { useGarage } from '@/contexts/GarageContext';
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { garageId } = useGarage();
   const [vehicle, setVehicle] = useState<Vehicle | undefined>();
-  const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>(mockServiceLogs);
+  const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
   const [specs, setSpecs] = useState<VehicleSpecs | undefined>();
   const [serviceLogDialogOpen, setServiceLogDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, this would be an API call
-    const foundVehicle = mockVehicles.find(v => v.id === id);
+    if (!garageId) {
+      navigate('/garage');
+      return;
+    }
+    
+    // Load vehicles and service logs from localStorage based on garage ID
+    const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+    const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+    
+    const vehicles = storedVehicles ? JSON.parse(storedVehicles) : [];
+    const logs = storedServiceLogs ? JSON.parse(storedServiceLogs) : [];
+    
+    // Find the vehicle with the matching ID
+    const foundVehicle = vehicles.find((v: Vehicle) => v.id === id);
+    
+    // Filter service logs for this vehicle
+    const vehicleLogs = logs.filter((log: ServiceLog) => log.vehicleId === id);
+    setServiceLogs(vehicleLogs);
+    
+    // Find vehicle specs (still using mock data for now)
     const vehicleSpecs = mockVehicleSpecs.find(s => s.vehicleId === id);
     
     if (foundVehicle) {
@@ -34,17 +53,34 @@ const VehicleDetails = () => {
     }
     
     setLoading(false);
-  }, [id, navigate]);
+  }, [id, navigate, garageId]);
 
   const handleAddServiceLog = (serviceLog: ServiceLog) => {
-    setServiceLogs(prev => [...prev, serviceLog]);
+    if (!garageId) return;
+    
+    // Add the new service log
+    const updatedServiceLogs = [...serviceLogs, serviceLog];
+    setServiceLogs(updatedServiceLogs);
+    
+    // Update localStorage with the new service logs
+    const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+    const allServiceLogs = storedServiceLogs ? JSON.parse(storedServiceLogs) : [];
+    const updatedAllServiceLogs = [...allServiceLogs.filter((log: ServiceLog) => log.vehicleId !== serviceLog.vehicleId || log.id !== serviceLog.id), serviceLog];
+    localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(updatedAllServiceLogs));
     
     // Update vehicle mileage if the service log has a higher mileage
     if (vehicle && serviceLog.mileage > vehicle.mileage) {
-      setVehicle({
+      const updatedVehicle = {
         ...vehicle,
         mileage: serviceLog.mileage
-      });
+      };
+      setVehicle(updatedVehicle);
+      
+      // Update the vehicle in localStorage as well
+      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+      const vehicles = storedVehicles ? JSON.parse(storedVehicles) : [];
+      const updatedVehicles = vehicles.map((v: Vehicle) => v.id === vehicle.id ? updatedVehicle : v);
+      localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
       
       toast.info(`Vehicle mileage updated to ${serviceLog.mileage} km`);
     }
@@ -131,7 +167,7 @@ const VehicleDetails = () => {
             <TabsContent value="history" className="mt-0">
               <ServiceHistoryTable 
                 vehicle={vehicle}
-                serviceLogs={serviceLogs.filter(log => log.vehicleId === vehicle.id)}
+                serviceLogs={serviceLogs}
               />
             </TabsContent>
             
