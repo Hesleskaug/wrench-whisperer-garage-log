@@ -12,6 +12,7 @@ import { Vehicle, ServiceLog } from "@/utils/mockData";
 import { printServiceHistory } from "@/utils/printUtils";
 import { FileText, Printer } from "lucide-react";
 import ServiceTaskList from "@/components/ServiceTaskList";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ServiceHistoryTableProps {
   vehicle: Vehicle;
@@ -19,6 +20,8 @@ interface ServiceHistoryTableProps {
 }
 
 const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps) => {
+  const { t } = useLanguage();
+  
   const sortedLogs = [...serviceLogs]
     .filter(log => log.vehicleId === vehicle.id)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -31,9 +34,9 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
     return (
       <div className="text-center p-6 bg-mechanic-silver/20 rounded-md">
         <FileText size={40} className="mx-auto text-mechanic-gray/40 mb-2" />
-        <h3 className="text-lg font-medium text-mechanic-gray">No Service Records</h3>
+        <h3 className="text-lg font-medium text-mechanic-gray">{t('noServiceRecords')}</h3>
         <p className="text-mechanic-gray/80 mt-1">
-          Start logging maintenance to build service history
+          {t('startLogging')}
         </p>
       </div>
     );
@@ -42,7 +45,7 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Service History</h3>
+        <h3 className="text-lg font-medium">{t('serviceHistory')}</h3>
         <Button 
           variant="outline" 
           size="sm"
@@ -50,7 +53,7 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
           className="text-mechanic-blue hover:text-mechanic-blue/80"
         >
           <Printer size={16} className="mr-1" />
-          Print History
+          {t('printHistory')}
         </Button>
       </div>
       
@@ -73,7 +76,7 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
               
               {log.parts && log.parts.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs text-mechanic-gray font-medium mb-1">Parts used:</div>
+                  <div className="text-xs text-mechanic-gray font-medium mb-1">{t('parts')}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {log.parts.map((part, index) => (
                       <span key={index} className="bg-mechanic-silver/20 text-xs py-1 px-2 rounded">

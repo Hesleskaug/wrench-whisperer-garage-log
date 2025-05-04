@@ -91,7 +91,21 @@ export const translations = {
     "english": "Engelsk",
     
     // Generic
-    "loading": "Laster inn..."
+    "loading": "Laster inn...",
+    "noServiceRecords": "Ingen servicehistorikk",
+    "startLogging": "Start loggføring av vedlikehold for å bygge servicehistorikk",
+    "welcomeGarage": "Velkommen til din garasje",
+    "addFirstVehicle": "Legg til ditt første kjøretøy for å begynne å spore vedlikeholdshistorikk",
+    "addVehicle": "Legg til Kjøretøy",
+    "yourVehicles": "Dine Kjøretøy",
+    "trackMaintenance": "Spor og administrer vedlikehold av kjøretøyene dine",
+    "printHistory": "Skriv ut Historikk",
+    "pageNotFound": "Oops! Siden finnes ikke",
+    "returnToGarage": "Gå tilbake til Garasjen",
+    "parts": "Deler brukt:",
+    "noCommunitySpecs": "Ingen spesifikasjoner funnet",
+    "providedBy": "Levert av",
+    "community": "fellesskapet"
   },
   en: {
     // Navigation
@@ -168,7 +182,21 @@ export const translations = {
     "english": "English",
     
     // Generic
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "noServiceRecords": "No Service Records",
+    "startLogging": "Start logging maintenance to build service history",
+    "welcomeGarage": "Welcome to Your Garage",
+    "addFirstVehicle": "Add your first vehicle to start tracking maintenance history",
+    "addVehicle": "Add Vehicle",
+    "yourVehicles": "Your Vehicles",
+    "trackMaintenance": "Track and manage your vehicle maintenance",
+    "printHistory": "Print History",
+    "pageNotFound": "Oops! Page not found",
+    "returnToGarage": "Return to Garage",
+    "parts": "Parts used:",
+    "noCommunitySpecs": "No specifications found",
+    "providedBy": "Provided by",
+    "community": "community"
   }
 };
 

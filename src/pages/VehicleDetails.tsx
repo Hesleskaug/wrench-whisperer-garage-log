@@ -16,11 +16,13 @@ import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
 import { Badge } from "@/components/ui/badge";
 import NorwegianPlate from '@/components/NorwegianPlate';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { garageId } = useGarage();
+  const { t } = useLanguage();
   const [vehicle, setVehicle] = useState<Vehicle | undefined>();
   const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
   const [specs, setSpecs] = useState<VehicleSpecs | undefined>();
@@ -137,7 +139,7 @@ const VehicleDetails = () => {
       setMainVehicleImage(newImages[0]);
     }
     
-    toast.success("Vehicle images updated");
+    toast.success(t('vehicleImages') + " " + t('updated'));
   };
 
   // Set main vehicle image
@@ -161,7 +163,7 @@ const VehicleDetails = () => {
       localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
     }
     
-    toast.success("Main image updated");
+    toast.success(t('mainImage') + " " + t('updated'));
   };
 
   const handleAddServiceLog = (serviceLog: ServiceLog) => {
@@ -191,7 +193,7 @@ const VehicleDetails = () => {
       const updatedVehicles = vehicles.map((v: Vehicle) => v.id === vehicle.id ? updatedVehicle : v);
       localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
       
-      toast.info(`Vehicle mileage updated to ${serviceLog.mileage} km`);
+      toast.info(`${t('currentMileage')}: ${serviceLog.mileage} km`);
     }
   };
 
@@ -240,14 +242,14 @@ const VehicleDetails = () => {
     // Delete vehicle details if stored
     localStorage.removeItem(`vehicle_details_${vehicle.id}`);
     
-    toast.success("Vehicle and its service history deleted");
+    toast.success(t('delete') + " " + t('successful'));
     navigate('/');
   };
 
   if (loading) {
     return (
       <div className="container py-8 text-center">
-        <p>Loading vehicle details...</p>
+        <p>{t('loading')}</p>
       </div>
     );
   }
@@ -267,7 +269,7 @@ const VehicleDetails = () => {
         onClick={() => navigate('/')}
         className="mb-6"
       >
-        <ArrowLeft size={16} className="mr-1" /> Back to Garage
+        <ArrowLeft size={16} className="mr-1" /> {t('backToGarage')}
       </Button>
       
       <div className="flex flex-col lg:flex-row gap-6 mb-6">
@@ -307,7 +309,7 @@ const VehicleDetails = () => {
                   className="bg-white bg-opacity-80 hover:bg-opacity-100"
                   onClick={() => setIsUploadingImage(!isUploadingImage)}
                 >
-                  {isUploadingImage ? "Close" : "Manage Images"}
+                  {isUploadingImage ? t('close') : t('manageImages')}
                 </Button>
               </div>
             </div>
@@ -316,7 +318,7 @@ const VehicleDetails = () => {
             {isUploadingImage && (
               <div className="p-4 border-b border-gray-100">
                 <TaskImageUploader
-                  title="Vehicle Images"
+                  title={t('vehicleImages')}
                   images={vehicleImages}
                   onImagesChange={handleImagesChange}
                   mainImage={vehicle.image}
@@ -356,12 +358,12 @@ const VehicleDetails = () => {
                   {vehicleDetails.firstRegistrationDate && (
                     <Badge variant="secondary" className="flex items-center gap-1 bg-blue-50 text-blue-700">
                       <Clock className="h-3 w-3" /> 
-                      First Reg: {formatDate(vehicleDetails.firstRegistrationDate)}
+                      {t('firstReg')}: {formatDate(vehicleDetails.firstRegistrationDate)}
                     </Badge>
                   )}
                   {isImported && (
                     <Badge variant="secondary" className="bg-amber-50 text-amber-700">
-                      Imported: {formatDate(vehicleDetails.importDate)}
+                      {t('imported')}: {formatDate(vehicleDetails.importDate)}
                     </Badge>
                   )}
                 </div>
@@ -369,15 +371,15 @@ const VehicleDetails = () => {
               
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-mechanic-gray">Plate Number</span>
+                  <span className="text-mechanic-gray">{t('plate')}</span>
                   <NorwegianPlate plate={vehicle.plate} className="ml-2" />
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-mechanic-gray">VIN</span>
+                  <span className="text-mechanic-gray">{t('vin')}</span>
                   <span className="font-medium">{vehicle.vin || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-mechanic-gray">Current Mileage</span>
+                  <span className="text-mechanic-gray">{t('currentMileage')}</span>
                   <span className="font-medium">{vehicle.mileage.toLocaleString()} km</span>
                 </div>
               </div>
@@ -386,32 +388,32 @@ const VehicleDetails = () => {
               {vehicleDetails && (
                 <div className="mt-5 pt-4 border-t border-gray-200">
                   <h3 className="font-semibold text-mechanic-blue mb-2 flex items-center">
-                    <Wrench size={16} className="mr-1" /> Technical Specifications
+                    <Wrench size={16} className="mr-1" /> {t('technicalSpecifications')}
                   </h3>
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-mechanic-gray">Engine</span>
+                      <span className="text-mechanic-gray">{t('engine')}</span>
                       <span className="font-medium">{vehicleDetails.engineSize ? `${vehicleDetails.engineSize}cc` : "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-mechanic-gray">Power</span>
+                      <span className="text-mechanic-gray">{t('power')}</span>
                       <span className="font-medium">{vehicleDetails.enginePower ? `${vehicleDetails.enginePower} kW` : "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-mechanic-gray">Fuel Type</span>
+                      <span className="text-mechanic-gray">{t('fuelType')}</span>
                       <span className="font-medium">{vehicleDetails.fuelType || "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-mechanic-gray">Transmission</span>
+                      <span className="text-mechanic-gray">{t('transmission')}</span>
                       <span className="font-medium">{vehicleDetails.transmission || "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-mechanic-gray">Engine Code</span>
+                      <span className="text-mechanic-gray">{t('engineCode')}</span>
                       <span className="font-medium">{vehicleDetails.engineCode || "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-mechanic-gray">Weight</span>
+                      <span className="text-mechanic-gray">{t('weight')}</span>
                       <span className="font-medium">{vehicleDetails.weight ? `${vehicleDetails.weight}kg` : "N/A"}</span>
                     </div>
                   </div>
@@ -419,17 +421,17 @@ const VehicleDetails = () => {
                   {/* Highlighted inspection information */}
                   <div className="mt-4 p-3 bg-amber-50 rounded-md border border-amber-200">
                     <h4 className="font-medium text-amber-800 flex items-center mb-2">
-                      <Calendar size={16} className="mr-1" /> Inspection Dates
+                      <Calendar size={16} className="mr-1" /> {t('inspectionDates')}
                     </h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-amber-700">Inspection Due</span>
+                        <span className="text-amber-700">{t('inspectionDue')}</span>
                         <Badge variant="outline" className="bg-amber-100 text-amber-800">
                           {vehicleDetails.inspectionDue ? formatDate(vehicleDetails.inspectionDue) : "N/A"}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-amber-700">Last Inspection</span>
+                        <span className="text-amber-700">{t('lastInspection')}</span>
                         <Badge variant="outline" className="bg-amber-100 text-amber-800">
                           {vehicleDetails.lastInspection ? formatDate(vehicleDetails.lastInspection) : "N/A"}
                         </Badge>
@@ -440,7 +442,7 @@ const VehicleDetails = () => {
                     {vehicleDetails.inspectionDue && new Date(vehicleDetails.inspectionDue) < new Date(new Date().setMonth(new Date().getMonth() + 2)) && (
                       <div className="flex items-center mt-2 pt-2 border-t border-amber-200 text-xs text-red-700 gap-1">
                         <AlertTriangle size={12} />
-                        <span>Inspection due soon</span>
+                        <span>{t('inspectionDueSoon')}</span>
                       </div>
                     )}
                   </div>
@@ -451,7 +453,7 @@ const VehicleDetails = () => {
                 className="w-full mt-6 bg-mechanic-blue hover:bg-mechanic-blue/90"
                 onClick={() => setServiceLogDialogOpen(true)}
               >
-                <Wrench size={16} className="mr-1" /> Log Service
+                <Wrench size={16} className="mr-1" /> {t('logService')}
               </Button>
             </CardContent>
           </Card>
@@ -461,10 +463,10 @@ const VehicleDetails = () => {
           <Tabs defaultValue="history">
             <TabsList className="mb-4">
               <TabsTrigger value="history" className="flex items-center">
-                <FileText size={16} className="mr-1" /> Service History
+                <FileText size={16} className="mr-1" /> {t('serviceHistory')}
               </TabsTrigger>
               <TabsTrigger value="specs" className="flex items-center">
-                <Wrench size={16} className="mr-1" /> Specifications
+                <Wrench size={16} className="mr-1" /> {t('specifications')}
               </TabsTrigger>
             </TabsList>
             

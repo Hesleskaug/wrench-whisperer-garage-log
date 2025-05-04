@@ -9,10 +9,12 @@ import { Vehicle, ServiceLog, mockVehicles as defaultMockVehicles, mockServiceLo
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
 import { useGarage } from '@/contexts/GarageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Index = () => {
   const navigate = useNavigate();
   const { garageId } = useGarage();
+  const { t } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
   const [addVehicleDialogOpen, setAddVehicleDialogOpen] = useState(false);
@@ -61,7 +63,7 @@ const Index = () => {
         mileage: serviceLog.mileage
       });
       
-      toast.info(`${selectedVehicle.make} ${selectedVehicle.model} mileage updated to ${serviceLog.mileage} km`);
+      toast.info(`${selectedVehicle.make} ${selectedVehicle.model} ${t('currentMileage')}: ${serviceLog.mileage} km`);
     }
   };
 
@@ -74,28 +76,28 @@ const Index = () => {
     <div className="container py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-mechanic-blue">Your Garage</h1>
-          <p className="text-mechanic-gray">Track and manage your vehicle maintenance</p>
+          <h1 className="text-3xl font-bold text-mechanic-blue">{t('yourGarage')}</h1>
+          <p className="text-mechanic-gray">{t('trackMaintenance')}</p>
         </div>
         <Button 
           onClick={() => setAddVehicleDialogOpen(true)}
           className="bg-mechanic-blue hover:bg-mechanic-blue/90"
         >
-          <Plus size={16} className="mr-1" /> Add Vehicle
+          <Plus size={16} className="mr-1" /> {t('addVehicle')}
         </Button>
       </div>
       
       {vehicles.length === 0 ? (
         <div className="text-center p-12 bg-mechanic-silver/20 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Welcome to Your Garage</h2>
+          <h2 className="text-xl font-semibold mb-2">{t('welcomeGarage')}</h2>
           <p className="text-mechanic-gray mb-6">
-            Add your first vehicle to start tracking maintenance history
+            {t('addFirstVehicle')}
           </p>
           <Button 
             onClick={() => setAddVehicleDialogOpen(true)}
             className="bg-mechanic-blue hover:bg-mechanic-blue/90"
           >
-            <Plus size={16} className="mr-1" /> Add Vehicle
+            <Plus size={16} className="mr-1" /> {t('addVehicle')}
           </Button>
         </div>
       ) : (
