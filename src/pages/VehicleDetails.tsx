@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import ServiceHistoryTable from "@/components/ServiceHistoryTable";
 import ServiceLogForm from "@/components/ServiceLogForm";
+import EditVehicleForm from "@/components/EditVehicleForm";
+import DeleteVehicleDialog from "@/components/DeleteVehicleDialog";
 import VehicleSpecsCard from "@/components/VehicleSpecsCard";
-import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Wrench, CarFront, FileText, Calendar, AlertTriangle, Edit, Trash2 } from "lucide-react";
 import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/mockData";
 import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
@@ -22,6 +23,8 @@ const VehicleDetails = () => {
   const [specs, setSpecs] = useState<VehicleSpecs | undefined>();
   const [communitySpecs, setCommunitySpecs] = useState<VehicleSpecs | undefined>();
   const [serviceLogDialogOpen, setServiceLogDialogOpen] = useState(false);
+  const [editVehicleDialogOpen, setEditVehicleDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   // New state for vehicle details from the API
   const [vehicleDetails, setVehicleDetails] = useState<any>(null);
@@ -131,6 +134,43 @@ const VehicleDetails = () => {
     }
   };
 
+  const handleUpdateVehicle = (updatedVehicle: Vehicle) => {
+    if (!garageId || !vehicle) return;
+    
+    // Update vehicle in state
+    setVehicle(updatedVehicle);
+    
+    // Update the vehicle in localStorage
+    const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+    const vehicles = storedVehicles ? JSON.parse(storedVehicles) : [];
+    const updatedVehicles = vehicles.map((v: Vehicle) => 
+      v.id === updatedVehicle.id ? updatedVehicle : v
+    );
+    localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
+  };
+
+  const handleDeleteVehicle = () => {
+    if (!garageId || !vehicle) return;
+    
+    // Delete vehicle from localStorage
+    const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+    const vehicles = storedVehicles ? JSON.parse(storedVehicles) : [];
+    const updatedVehicles = vehicles.filter((v: Vehicle) => v.id !== vehicle.id);
+    localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
+    
+    // Delete all service logs for this vehicle
+    const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+    const logs = storedServiceLogs ? JSON.parse(storedServiceLogs) : [];
+    const updatedLogs = logs.filter((log: ServiceLog) => log.vehicleId !== vehicle.id);
+    localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(updatedLogs));
+    
+    // Delete vehicle details if stored
+    localStorage.removeItem(`vehicle_details_${vehicle.id}`);
+    
+    toast.success("Vehicle and its service history deleted");
+    navigate('/');
+  };
+
   if (loading) {
     return (
       <div className="container py-8 text-center">
@@ -169,9 +209,29 @@ const VehicleDetails = () => {
             )}
             
             <CardContent className="p-6">
-              <h1 className="text-2xl font-bold text-mechanic-blue">
-                {vehicle.year} {vehicle.make} {vehicle.model}
-              </h1>
+              <div className="flex justify-between items-start mb-2">
+                <h1 className="text-2xl font-bold text-mechanic-blue">
+                  {vehicle.year} {vehicle.make} {vehicle.model}
+                </h1>
+                <div className="flex space-x-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={() => setEditVehicleDialogOpen(true)}
+                  >
+                    <Edit size={16} />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                    onClick={() => setDeleteDialogOpen(true)}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
               
               <div className="mt-4 space-y-3">
                 <div className="flex justify-between">
@@ -299,6 +359,20 @@ const VehicleDetails = () => {
         onOpenChange={setServiceLogDialogOpen}
         vehicle={vehicle}
         onAddServiceLog={handleAddServiceLog}
+      />
+      
+      <EditVehicleForm
+        open={editVehicleDialogOpen}
+        onOpenChange={setEditVehicleDialogOpen}
+        vehicle={vehicle}
+        onUpdateVehicle={handleUpdateVehicle}
+      />
+      
+      <DeleteVehicleDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        vehicle={vehicle}
+        onDeleteVehicle={handleDeleteVehicle}
       />
     </div>
   );
