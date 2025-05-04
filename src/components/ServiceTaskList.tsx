@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ServiceTask } from '@/utils/mockData';
 import { Check, Clock, FileText, Wrench, Pencil } from 'lucide-react';
@@ -47,15 +48,25 @@ const ServiceTaskList = ({ tasks, className, serviceLogId, onTaskUpdate }: Servi
 
   // Helper function to format torque specifications into readable format
   const formatTorqueSpec = (spec: string) => {
-    const parts = spec.split(':').map(part => part.trim());
-    if (parts.length > 1) {
-      return (
-        <>
-          <span className="font-medium">{parts[0]}:</span> {parts.slice(1).join(':')}
-        </>
-      );
-    }
-    return spec;
+    // Split by line breaks or semicolons to handle multiple torque specs
+    const specs = spec.split(/[;\n]/);
+    
+    return (
+      <div className="space-y-1">
+        {specs.map((item, index) => {
+          const parts = item.split(':').map(part => part.trim());
+          if (parts.length > 1 && parts[0] && parts[1]) {
+            return (
+              <div key={index} className="flex items-center gap-1">
+                <span className="font-medium">{parts[0]}:</span>
+                <span>{parts.slice(1).join(':')}</span>
+              </div>
+            );
+          }
+          return item ? <div key={index}>{item}</div> : null;
+        })}
+      </div>
+    );
   };
 
   return (
@@ -129,33 +140,39 @@ const ServiceTaskList = ({ tasks, className, serviceLogId, onTaskUpdate }: Servi
                   </div>
                 )}
                 
-                {/* Torque Specifications */}
+                {/* Torque Specifications - Enhanced */}
                 {task.torqueSpec && (
                   <div className="mt-3">
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <div className="bg-mechanic-blue/10 text-mechanic-blue px-2 py-1 rounded">
-                        <span className="font-medium">{t('torque')}:</span> {formatTorqueSpec(task.torqueSpec)}
+                    <div className="bg-mechanic-blue/10 text-mechanic-blue px-3 py-2 rounded-md">
+                      <div className="text-xs font-medium uppercase tracking-wide mb-1">
+                        {t('torque')}
+                      </div>
+                      <div className="text-sm">
+                        {formatTorqueSpec(task.torqueSpec)}
                       </div>
                     </div>
                   </div>
                 )}
                 
-                {/* Tools Required */}
+                {/* Tools Required - Enhanced */}
                 {task.toolsRequired && task.toolsRequired.length > 0 && (
-                  <div className="mt-2">
-                    <div className="text-xs font-medium text-mechanic-gray mb-1 flex items-center gap-1">
-                      <Wrench size={14} className="text-mechanic-gray" /> {t('equipmentNeeded')}:
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {task.toolsRequired.map((tool, index) => (
-                        <Badge 
-                          key={index}
-                          variant="outline"
-                          className="bg-mechanic-silver/10 text-mechanic-gray border-mechanic-silver/20 hover:bg-mechanic-silver/20"
-                        >
-                          {tool}
-                        </Badge>
-                      ))}
+                  <div className="mt-3">
+                    <div className="bg-mechanic-silver/10 px-3 py-2 rounded-md">
+                      <div className="text-xs font-medium uppercase tracking-wide mb-2 flex items-center gap-1.5 text-mechanic-gray">
+                        <Wrench size={14} className="text-mechanic-gray" /> 
+                        {t('equipmentNeeded')}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {task.toolsRequired.map((tool, index) => (
+                          <Badge 
+                            key={index}
+                            variant="outline"
+                            className="bg-white text-mechanic-gray border-mechanic-silver/40 px-2.5 py-1 hover:bg-mechanic-silver/20"
+                          >
+                            {tool}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
