@@ -121,9 +121,16 @@ interface ServiceLogFormProps {
   onOpenChange: (open: boolean) => void;
   vehicle: Vehicle | null;
   onAddServiceLog: (serviceLog: ServiceLog) => void;
+  editingLog?: ServiceLog;
 }
 
-const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: ServiceLogFormProps) => {
+const ServiceLogForm = ({ 
+  open, 
+  onOpenChange, 
+  vehicle, 
+  onAddServiceLog, 
+  editingLog 
+}: ServiceLogFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -158,13 +165,72 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
     },
   });
   
-  // Prefill form when vehicle changes or form opens
+  // Populate form when editing an existing service log
   useEffect(() => {
-    if (vehicle && open) {
-      form.setValue('mileage', vehicle.mileage);
+    if (editingLog && open) {
+      // Set form values from the editing log
+      form.setValue('date', new Date(editingLog.date));
+      form.setValue('mileage', editingLog.mileage);
+      form.setValue('serviceType', editingLog.serviceType);
+      form.setValue('description', editingLog.description || '');
+      
+      if (editingLog.nextDueMileage) {
+        form.setValue('nextDueMileage', editingLog.nextDueMileage);
+      }
+      
+      if (editingLog.nextDueDate) {
+        form.setValue('nextDueDate', new Date(editingLog.nextDueDate));
+      }
+      
+      // Extract labor hours and rate from the cost if available
+      // This is an approximation since we don't store these separately
+      const laborCost = editingLog.cost ? editingLog.cost / 2 : undefined;
+      if (laborCost) {
+        form.setValue('laborHours', 1);
+        form.setValue('laborRate', laborCost);
+      }
+      
+      // Set parts from the editing log
+      if (editingLog.parts && editingLog.parts.length) {
+        const parsedParts = editingLog.parts.map((part, idx) => {
+          // Try to extract quantity from format like "Oil filter (1)"
+          const matches = part.match(/(.*)\s*\((\d+)\)$/);
+          if (matches && matches.length > 2) {
+            return {
+              id: `part-${Date.now()}-${idx}`,
+              name: matches[1].trim(),
+              quantity: parseInt(matches[2], 10) || 1,
+              price: 0 // We don't store individual prices
+            };
+          }
+          return {
+            id: `part-${Date.now()}-${idx}`,
+            name: part,
+            quantity: 1,
+            price: 0
+          };
+        });
+        setParts(parsedParts);
+      }
+      
+      // Extract tasks to the tasks state
+      if (editingLog.tasks && editingLog.tasks.length) {
+        setTasks(editingLog.tasks);
+      }
+    } else if (!editingLog && open) {
+      // Reset form for a new service log entry
       form.setValue('date', new Date());
+      form.setValue('mileage', vehicle?.mileage || 0);
+      form.setValue('serviceType', '');
+      form.setValue('description', '');
+      form.setValue('nextDueMileage', undefined);
+      form.setValue('nextDueDate', undefined);
+      form.setValue('laborHours', undefined);
+      form.setValue('laborRate', undefined);
+      setParts([]);
+      setTasks([]);
     }
-  }, [vehicle, open, form]);
+  }, [editingLog, open, form, vehicle]);
 
   const onSubmit = async (data: z.infer<typeof formSchema>, createAnother: boolean = false) => {
     setIsSubmitting(true);
@@ -184,8 +250,8 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
       const partsArray = parts.map(part => `${part.name} (${part.quantity})`);
       
       // In a real app, you would call an API here
-      const newServiceLog: ServiceLog = {
-        id: Date.now().toString(), // Generate a temporary ID
+      const serviceLog: ServiceLog = {
+        id: editingLog ? editingLog.id : Date.now().toString(), // Use existing ID or generate a new one
         vehicleId: vehicle.id,
         date: format(data.date, 'yyyy-MM-dd'),
         mileage: data.mileage,
@@ -205,8 +271,8 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
       // Adding a small delay to simulate an API call
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      onAddServiceLog(newServiceLog);
-      toast.success("Service log added successfully");
+      onAddServiceLog(serviceLog);
+      toast.success(editingLog ? "Service log updated successfully" : "Service log added successfully");
       
       if (!createAnother) {
         resetForm();
@@ -221,8 +287,8 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
         setIsSubmitting(false);
       }
     } catch (error) {
-      console.error("Error adding service log:", error);
-      toast.error("Failed to add service log");
+      console.error("Error with service log:", error);
+      toast.error(editingLog ? "Failed to update service log" : "Failed to add service log");
       setIsSubmitting(false);
     }
   };
@@ -349,9 +415,13 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-mechanic-blue">Log New Service</DialogTitle>
+            <DialogTitle className="text-mechanic-blue">
+              {editingLog ? "Edit Service Log" : "Log New Service"}
+            </DialogTitle>
             <DialogDescription>
-              Enter the details of the service performed on this vehicle.
+              {editingLog 
+                ? "Update the details of this service record." 
+                : "Enter the details of the service performed on this vehicle."}
             </DialogDescription>
           </DialogHeader>
 
@@ -765,19 +835,22 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
                   type="submit" 
                   className="bg-mechanic-blue hover:bg-mechanic-blue/90"
                   disabled={isSubmitting}
+                  onClick={form.handleSubmit((data) => onSubmit(data))}
                 >
                   <Save size={16} className="mr-1" />
-                  {isSubmitting ? "Adding..." : "Save"}
+                  {isSubmitting ? (editingLog ? "Updating..." : "Adding...") : (editingLog ? "Update" : "Save")}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  disabled={isSubmitting}
-                  onClick={() => form.handleSubmit((data) => onSubmit(data, true))()}
-                >
-                  <Save size={16} className="mr-1" />
-                  Save & Create Another
-                </Button>
+                {!editingLog && (
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    disabled={isSubmitting}
+                    onClick={() => form.handleSubmit((data) => onSubmit(data, true))()}
+                  >
+                    <Save size={16} className="mr-1" />
+                    Save & Create Another
+                  </Button>
+                )}
               </DialogFooter>
             </form>
           </Form>

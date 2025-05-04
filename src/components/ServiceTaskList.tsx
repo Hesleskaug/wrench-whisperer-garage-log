@@ -1,18 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ServiceTask } from '@/utils/mockData';
-import { Check, Clock, FileText, Wrench } from 'lucide-react';
+import { Check, Clock, FileText, Wrench, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TaskImageGallery from './TaskImageGallery';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Button } from './ui/button';
+import TaskDialog from './TaskDialog';
 
 interface ServiceTaskListProps {
   tasks?: ServiceTask[];
   className?: string;
+  serviceLogId?: string;
+  onTaskUpdate?: (task: ServiceTask) => void;
 }
 
-const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
+const ServiceTaskList = ({ tasks, className, serviceLogId, onTaskUpdate }: ServiceTaskListProps) => {
   const { t } = useLanguage();
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   
   if (!tasks?.length) {
     return (
@@ -21,6 +26,24 @@ const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
       </div>
     );
   }
+  
+  const handleTaskComplete = (task: ServiceTask) => {
+    if (onTaskUpdate) {
+      onTaskUpdate({
+        ...task,
+        completed: !task.completed
+      });
+    }
+  };
+  
+  const handleUpdateTask = (updatedTask: ServiceTask) => {
+    if (onTaskUpdate) {
+      onTaskUpdate(updatedTask);
+    }
+    setEditingTaskId(null);
+  };
+  
+  const currentlyEditingTask = editingTaskId ? tasks.find(task => task.id === editingTaskId) : null;
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -35,15 +58,30 @@ const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
           )}
         >
           <div className="flex items-start gap-2">
-            <div className={cn(
-              "mt-1 p-1 rounded-full",
-              task.completed ? "bg-green-100 text-green-600" : "bg-mechanic-red/20 text-mechanic-red"
-            )}>
+            <div 
+              className={cn(
+                "mt-1 p-1 rounded-full cursor-pointer",
+                task.completed ? "bg-green-100 text-green-600" : "bg-mechanic-red/20 text-mechanic-red"
+              )}
+              onClick={() => handleTaskComplete(task)}
+            >
               {task.completed ? <Check size={16} /> : <Clock size={16} />}
             </div>
             
             <div className="flex-1">
-              <div className="font-medium">{task.description}</div>
+              <div className="flex items-start justify-between">
+                <div className="font-medium">{task.description}</div>
+                {onTaskUpdate && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0" 
+                    onClick={() => setEditingTaskId(task.id)}
+                  >
+                    <Pencil size={14} />
+                  </Button>
+                )}
+              </div>
               
               {task.notes && (
                 <div className="mt-2 flex items-start gap-1.5 text-sm text-mechanic-gray">
@@ -97,10 +135,38 @@ const ServiceTaskList = ({ tasks, className }: ServiceTaskListProps) => {
               {task.images && task.images.length > 0 && (
                 <TaskImageGallery images={task.images} />
               )}
+              
+              {task.difficulty && (
+                <div className="mt-2">
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded",
+                    task.difficulty === 'easy' ? "bg-green-100 text-green-700" :
+                    task.difficulty === 'moderate' ? "bg-yellow-100 text-yellow-700" :
+                    "bg-red-100 text-red-700"
+                  )}>
+                    {task.difficulty}
+                  </span>
+                </div>
+              )}
+              
+              {task.estimatedTime && (
+                <div className="mt-2 text-xs text-mechanic-gray">
+                  {t('estimatedTime')}: {task.estimatedTime} min
+                </div>
+              )}
             </div>
           </div>
         </div>
       ))}
+      
+      {currentlyEditingTask && serviceLogId && (
+        <TaskDialog
+          open={!!currentlyEditingTask}
+          onOpenChange={(open) => !open && setEditingTaskId(null)}
+          onAddTask={handleUpdateTask}
+          editingTask={currentlyEditingTask}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -234,6 +233,43 @@ const VehicleDetails = () => {
       localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
       
       toast.info(`${t('currentMileage')}: ${serviceLog.mileage} km`);
+    }
+  };
+
+  const handleUpdateServiceLog = (updatedLog: ServiceLog) => {
+    if (!garageId) return;
+    
+    // Update the service log in state
+    const updatedServiceLogs = serviceLogs.map(log => 
+      log.id === updatedLog.id ? updatedLog : log
+    );
+    setServiceLogs(updatedServiceLogs);
+    
+    // Update localStorage with the updated service logs
+    const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+    const allServiceLogs = storedServiceLogs ? JSON.parse(storedServiceLogs) : [];
+    const updatedAllServiceLogs = allServiceLogs.map((log: ServiceLog) => 
+      log.id === updatedLog.id ? updatedLog : log
+    );
+    localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(updatedAllServiceLogs));
+    
+    toast.success(t('serviceLog') + " " + t('updated'));
+    
+    // Update vehicle mileage if the service log has a higher mileage
+    if (vehicle && updatedLog.mileage > vehicle.mileage) {
+      const updatedVehicle = {
+        ...vehicle,
+        mileage: updatedLog.mileage
+      };
+      setVehicle(updatedVehicle);
+      
+      // Update the vehicle in localStorage as well
+      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+      const vehicles = storedVehicles ? JSON.parse(storedVehicles) : [];
+      const updatedVehicles = vehicles.map((v: Vehicle) => v.id === vehicle.id ? updatedVehicle : v);
+      localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(updatedVehicles));
+      
+      toast.info(`${t('currentMileage')}: ${updatedLog.mileage} km`);
     }
   };
 
@@ -626,6 +662,7 @@ const VehicleDetails = () => {
               <ServiceHistoryTable 
                 vehicle={vehicle}
                 serviceLogs={serviceLogs}
+                onUpdateServiceLog={handleUpdateServiceLog}
               />
             </TabsContent>
             

@@ -10,17 +10,25 @@ import {
 } from "@/components/ui/table";
 import { Vehicle, ServiceLog } from "@/utils/mockData";
 import { printServiceHistory } from "@/utils/printUtils";
-import { FileText, Printer } from "lucide-react";
+import { FileText, Printer, Edit, Pencil } from "lucide-react";
 import ServiceTaskList from "@/components/ServiceTaskList";
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useState } from 'react';
+import ServiceLogForm from "@/components/ServiceLogForm";
 
 interface ServiceHistoryTableProps {
   vehicle: Vehicle;
   serviceLogs: ServiceLog[];
+  onUpdateServiceLog?: (updatedLog: ServiceLog) => void;
 }
 
-const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps) => {
+const ServiceHistoryTable = ({ 
+  vehicle, 
+  serviceLogs,
+  onUpdateServiceLog
+}: ServiceHistoryTableProps) => {
   const { t } = useLanguage();
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
   
   const sortedLogs = [...serviceLogs]
     .filter(log => log.vehicleId === vehicle.id)
@@ -28,6 +36,17 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
   
   const handlePrint = () => {
     printServiceHistory(vehicle, sortedLogs);
+  };
+  
+  const handleEditLog = (logId: string) => {
+    setEditingLogId(logId);
+  };
+  
+  const handleUpdateServiceLog = (updatedLog: ServiceLog) => {
+    setEditingLogId(null);
+    if (onUpdateServiceLog) {
+      onUpdateServiceLog(updatedLog);
+    }
   };
   
   if (sortedLogs.length === 0) {
@@ -41,6 +60,8 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
       </div>
     );
   }
+
+  const currentlyEditingLog = editingLogId ? sortedLogs.find(log => log.id === editingLogId) : null;
 
   return (
     <div>
@@ -68,8 +89,16 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
                     {new Date(log.date).toLocaleDateString()} • {log.mileage.toLocaleString()} km
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-2">
                   {log.cost && <div className="font-medium">{log.cost} kr</div>}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-mechanic-gray hover:text-mechanic-blue"
+                    onClick={() => handleEditLog(log.id)}
+                  >
+                    <Pencil size={16} />
+                  </Button>
                 </div>
               </div>
               <p className="mt-2 text-sm">{log.description}</p>
@@ -88,12 +117,32 @@ const ServiceHistoryTable = ({ vehicle, serviceLogs }: ServiceHistoryTableProps)
               )}
               
               <div className="mt-3">
-                <ServiceTaskList tasks={log.tasks} />
+                <ServiceTaskList 
+                  tasks={log.tasks} 
+                  serviceLogId={log.id}
+                  onTaskUpdate={onUpdateServiceLog ? (task) => {
+                    const updatedLog = {
+                      ...log,
+                      tasks: log.tasks?.map(t => t.id === task.id ? task : t) || []
+                    };
+                    onUpdateServiceLog(updatedLog);
+                  } : undefined}
+                />
               </div>
             </div>
           </div>
         ))}
       </div>
+      
+      {currentlyEditingLog && (
+        <ServiceLogForm
+          open={!!currentlyEditingLog}
+          onOpenChange={(open) => !open && setEditingLogId(null)}
+          vehicle={vehicle}
+          onAddServiceLog={handleUpdateServiceLog}
+          editingLog={currentlyEditingLog}
+        />
+      )}
     </div>
   );
 };
