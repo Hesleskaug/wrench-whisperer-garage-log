@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -158,18 +157,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Define the update data with correct types
-      type ProfileUpdate = {
-        username: string | null;
-      };
-
-      const updates: ProfileUpdate = {
-        username: data.username || null
-      };
-
+      // Using the database schema types from Supabase
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update({
+          username: data.username || null
+        })
         .eq('id', state.user.id);
       
       if (error) throw error;
