@@ -9,6 +9,13 @@ export interface Vehicle {
   image?: string;
 }
 
+export interface ReceiptInfo {
+  store: string;
+  invoiceNumber?: string;
+  date?: string;
+  amount?: number;
+}
+
 export interface ServiceTask {
   id: string;
   description: string;
@@ -16,6 +23,7 @@ export interface ServiceTask {
   notes?: string;
   toolsRequired?: string[];
   torqueSpec?: string;
+  receipt?: ReceiptInfo;
 }
 
 export interface ServiceLog {
