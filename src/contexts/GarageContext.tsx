@@ -79,11 +79,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     return storedLogs ? JSON.parse(storedLogs) : [];
   };
 
-  // Function to save vehicles to Supabase
+  // Function to save vehicles to Supabase with better RLS handling
   const syncVehicles = async (vehicles: Vehicle[]) => {
     if (!garageId) {
       console.error('No garage ID available');
-      return;
+      return Promise.reject(new Error('No garage ID available'));
     }
 
     // First, save vehicles to localStorage as a reliable backup
@@ -91,9 +91,26 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     console.log('Vehicles saved to localStorage:', vehicles);
     
     try {
-      // Then try to sync to Supabase
+      // Generate a UUID for the user_id once - use the garageId as user_id for RLS purposes
+      const userId = garageId;
+      
+      // Format vehicles for Supabase insert
+      const vehiclesToInsert = vehicles.map(vehicle => ({
+        id: vehicle.id && vehicle.id.includes('-') ? vehicle.id : uuidv4(),
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        mileage: vehicle.mileage || 0,
+        plate: vehicle.plate || '',
+        vin: vehicle.vin || null,
+        image_url: vehicle.image || null,
+        notes: vehicle.notes || null,
+        garage_id: garageId,
+        user_id: userId,
+      }));
+      
+      // Try to delete existing vehicles for this garage first
       try {
-        // First, delete existing vehicles for this garage
         const { error: deleteError } = await supabase
           .from('vehicles')
           .delete()
@@ -101,64 +118,58 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           
         if (deleteError) {
           console.error('Error deleting existing vehicles:', deleteError);
-          // Don't throw, continue with insert attempt
+          // Continue with insert attempt regardless
         }
+      } catch (deleteErr) {
+        console.error('Exception during vehicle delete:', deleteErr);
+        // Continue with insert attempt
+      }
+      
+      // Insert in batches to avoid payload size issues
+      if (vehicles.length > 0) {
+        const batchSize = 5;
+        let syncSuccessful = false;
         
-        // Then insert the new vehicles
-        if (vehicles.length > 0) {
-          // Generate a UUID for the user_id once
-          const generatedUserId = uuidv4();
-          
-          // Format vehicles for Supabase insert
-          const vehiclesToInsert = vehicles.map(vehicle => ({
-            id: vehicle.id && vehicle.id.includes('-') ? vehicle.id : uuidv4(),
-            make: vehicle.make,
-            model: vehicle.model,
-            year: vehicle.year,
-            mileage: vehicle.mileage || 0,
-            plate: vehicle.plate || '',
-            vin: vehicle.vin || null,
-            image_url: vehicle.image || null,
-            notes: vehicle.notes || null,
-            garage_id: garageId,
-            user_id: generatedUserId,
-          }));
-          
-          // Insert in batches to avoid payload size issues
-          const batchSize = 5;
-          for (let i = 0; i < vehiclesToInsert.length; i += batchSize) {
-            const batch = vehiclesToInsert.slice(i, i + batchSize);
+        for (let i = 0; i < vehiclesToInsert.length; i += batchSize) {
+          const batch = vehiclesToInsert.slice(i, i + batchSize);
+          try {
             const { error: insertError } = await supabase
               .from('vehicles')
               .insert(batch);
               
             if (insertError) {
               console.error('Error syncing vehicles batch to Supabase:', insertError);
-              // Continue with next batch
+              throw insertError;
+            } else {
+              syncSuccessful = true;
             }
+          } catch (insertErr) {
+            console.error('Exception during vehicle insert:', insertErr);
+            throw insertErr;
           }
-          
+        }
+        
+        if (syncSuccessful) {
           console.log('Vehicles synced to Supabase successfully');
         }
-      } catch (error) {
-        console.error('Error in Supabase sync operation:', error);
-        throw error; // Re-throw for the calling function to handle
       }
+      
+      return Promise.resolve();
     } catch (error) {
       console.error('Error in syncVehicles:', error);
-      throw error; // Re-throw for the calling function to handle
+      return Promise.reject(error);
     }
   };
 
-  // Function to fetch vehicles from Supabase
+  // Function to fetch vehicles from Supabase with better error handling
   const fetchVehicles = async (): Promise<Vehicle[]> => {
     if (!garageId) {
       console.error('No garage ID available');
-      return [];
+      return Promise.resolve([]);
     }
 
     try {
-      // Try to fetch from Supabase first
+      // Try to fetch from Supabase
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
@@ -166,7 +177,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         
       if (error) {
         console.error('Error fetching vehicles from Supabase:', error);
-        throw error; // Let the calling function handle this
+        throw error;
       }
       
       if (data && data.length > 0) {
@@ -184,11 +195,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         }));
       }
       
-      // If no data in Supabase, return empty array so we can try localStorage
+      // If no data in Supabase, return empty array
       return [];
     } catch (error) {
       console.error('Error in fetchVehicles:', error);
-      throw error; // Let the calling function handle this
+      throw error;
     }
   };
 
