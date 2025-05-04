@@ -20,6 +20,7 @@ export const useGarageData = () => {
       
       setIsLoading(true);
       try {
+        console.log('Loading vehicles for garage ID:', garageId);
         // Try to fetch vehicles from the database
         const fetchedVehicles = await fetchVehicles();
         
@@ -33,13 +34,22 @@ export const useGarageData = () => {
           setVehicles(defaultMockVehicles);
           
           // Try to save mock vehicles to database one by one for first-time setup
+          console.log('Saving mock vehicles to database');
+          let savingErrors = 0;
+          
           for (const vehicle of defaultMockVehicles) {
             try {
               await saveVehicle(vehicle);
             } catch (error) {
               console.error('Failed to save mock vehicle to database:', error);
-              setSyncError('Could not save to database. Try manual save later.');
+              savingErrors++;
             }
+          }
+          
+          if (savingErrors > 0) {
+            setSyncError(`${savingErrors} vehicles failed to save to database`);
+          } else {
+            setSyncError(null);
           }
         }
         
@@ -76,10 +86,16 @@ export const useGarageData = () => {
   }, [serviceLogs, garageId, syncServiceLogs]);
 
   const handleAddVehicle = async (vehicle: Vehicle) => {
+    if (!garageId) {
+      toast.error('No active garage. Please create or access a garage first.');
+      return;
+    }
+    
     setIsSaving(true);
     setSyncError(null);
     
     try {
+      console.log('Saving vehicle to database:', vehicle);
       // Save directly to the database
       await saveVehicle(vehicle);
       
@@ -153,6 +169,7 @@ export const useGarageData = () => {
     setSyncError(null);
     
     try {
+      console.log('Manually saving vehicle:', vehicleToSave);
       await saveVehicle(vehicleToSave);
       toast.success('Vehicle saved to database successfully');
       setLastSyncAttempt(new Date());
@@ -177,6 +194,7 @@ export const useGarageData = () => {
     let errorCount = 0;
     
     try {
+      console.log('Saving all vehicles to database');
       // Save each vehicle one by one
       for (const vehicle of vehicles) {
         try {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
@@ -10,6 +9,7 @@ import VehicleList from '@/components/VehicleList';
 import { useGarageData } from '@/hooks/useGarageData';
 import { Button } from "@/components/ui/button";
 import { CloudUpload, AlertCircle, Save, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -71,34 +71,24 @@ const Index = () => {
     return lastSyncAttempt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Function to handle retry for the currently selected vehicle
-  const handleRetry = () => {
-    if (selectedVehicle) {
-      retrySave(selectedVehicle.id);
-    }
-  };
-
-  // Function to save all vehicles to the cloud
-  const handleSaveAllVehicles = () => {
-    syncAllVehicles();
-  };
-
   return (
     <div className="container py-8">
       <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
       
+      {syncError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {syncError}. Please try saving your vehicles again.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="mb-4 flex items-center justify-end">
         <div className="flex items-center mr-2">
-          {syncError && (
-            <div className="text-xs text-destructive flex items-center mr-2">
-              <AlertCircle size={14} className="mr-1" />
-              <span>{syncError}</span>
-            </div>
-          )}
-          
           <div className="text-xs text-muted-foreground">
             {lastSyncAttempt && !isSaving && (
-              <span>Last save: {formatLastSync()}</span>
+              <span>Last database update: {formatLastSync()}</span>
             )}
           </div>
         </div>
@@ -119,7 +109,7 @@ const Index = () => {
         <Button 
           variant="outline"
           size="sm" 
-          onClick={handleSaveAllVehicles} 
+          onClick={syncAllVehicles} 
           disabled={isLoading || isSaving || vehicles.length === 0}
           className="flex items-center gap-1"
         >

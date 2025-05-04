@@ -36,11 +36,26 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   // Use this effect to update RLS context whenever garage ID changes
   useEffect(() => {
-    if (garageId) {
-      setCurrentGarageId(garageId).catch(error => {
-        console.error('Failed to set garage ID for RLS:', error);
-      });
-    }
+    const updateRlsContext = async () => {
+      if (!garageId) return;
+      
+      try {
+        console.log('Setting RLS context for garage ID:', garageId);
+        const { error } = await supabase.rpc('set_current_garage_id', { 
+          garage_id: garageId 
+        });
+        
+        if (error) {
+          console.error('Failed to set garage ID for RLS:', error);
+        } else {
+          console.log('Successfully set garage ID for RLS');
+        }
+      } catch (error) {
+        console.error('Error setting garage ID for RLS:', error);
+      }
+    };
+    
+    updateRlsContext();
   }, [garageId]);
 
   const createGarage = () => {
@@ -88,25 +103,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     return storedLogs ? JSON.parse(storedLogs) : [];
   };
 
-  // Set the current garage ID in Supabase for RLS 
-  const setCurrentGarageId = async (garageId: string) => {
-    try {
-      console.log('Setting current garage ID to:', garageId);
-      const { error } = await supabase.rpc('set_current_garage_id', { garage_id: garageId });
-      
-      if (error) {
-        console.error('Error setting current garage ID:', error);
-        throw error;
-      }
-      
-      console.log('Successfully set current garage ID for RLS');
-      return true;
-    } catch (error) {
-      console.error('Exception setting current garage ID:', error);
-      throw error;
-    }
-  };
-
   // Function to save a single vehicle directly to the database
   const saveVehicle = async (vehicle: Vehicle) => {
     if (!garageId) {
@@ -116,7 +112,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
     try {
       // Make sure we set the RLS context before any operations
-      await setCurrentGarageId(garageId);
+      console.log('Setting current garage ID before saving vehicle:', garageId);
+      await supabase.rpc('set_current_garage_id', { garage_id: garageId });
       
       // Prepare vehicle data for insert/update
       const vehicleData = {
@@ -133,6 +130,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         user_id: garageId, // Using garageId as user_id for RLS purposes
       };
 
+      console.log('Saving vehicle with data:', vehicleData);
+      
       // Save to Supabase - use upsert to handle both insert and update
       const { data, error } = await supabase
         .from('vehicles')
@@ -161,9 +160,11 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
     try {
       // Set the current garage ID for RLS
-      await setCurrentGarageId(garageId);
+      console.log('Setting current garage ID before fetching vehicles:', garageId);
+      await supabase.rpc('set_current_garage_id', { garage_id: garageId });
       
       // Try to fetch from Supabase with RLS context set
+      console.log('Fetching vehicles with garage_id:', garageId);
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
@@ -194,6 +195,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       }
       
       // If no data in Supabase, return empty array
+      console.log('No vehicles found in database');
       return [];
     } catch (error) {
       console.error('Error in fetchVehicles:', error);
