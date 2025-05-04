@@ -159,6 +159,13 @@ const VehicleDetails = () => {
     if (updatedVehicle.specs) {
       setSpecs(updatedVehicle.specs);
     }
+    
+    // Update vehicle details in localStorage if plate was added
+    if (vehicle.plate !== updatedVehicle.plate && vehicleDetails) {
+      const updatedDetails = { ...vehicleDetails, plate: updatedVehicle.plate };
+      setVehicleDetails(updatedDetails);
+      localStorage.setItem(`vehicle_details_${vehicle.id}`, JSON.stringify(updatedDetails));
+    }
   };
 
   const handleDeleteVehicle = () => {

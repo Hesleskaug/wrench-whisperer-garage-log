@@ -115,8 +115,8 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
         model: data.model,
         year: data.year,
         mileage: data.mileage,
-        plate: data.plate,
-        vin: data.vin,
+        plate: data.plate || undefined, // Ensure undefined if empty string
+        vin: data.vin || undefined, // Ensure undefined if empty string
         image: data.image || undefined,
       };
       
