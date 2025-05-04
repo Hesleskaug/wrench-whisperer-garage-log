@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -110,15 +111,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ 
+      // Use the current window location for reliable redirection
+      const currentUrl = window.location.origin;
+      
+      const { error, data } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${currentUrl}/auth`
         }
       });
       
       if (error) throw error;
+      
+      // Check if confirmation email was sent or if auto-confirm is on
+      if (data?.user?.identities?.length === 0) {
+        toast.error('This email is already registered. Please sign in instead.');
+        return;
+      }
       
       toast.success('Signed up successfully! Check your email to confirm your account.');
     } catch (error: any) {
@@ -148,12 +158,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Use a properly typed update object with explicit username field
+      // Fix the TypeScript error by using type assertion
       const { error } = await supabase
         .from('profiles')
         .update({ 
           username: data.username || null
-        })
+        } as any)
         .eq('id', state.user.id);
       
       if (error) throw error;

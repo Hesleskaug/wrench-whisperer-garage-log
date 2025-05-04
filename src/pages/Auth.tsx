@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,18 +8,48 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('signin');
   
-  // If user is already logged in, redirect to home
-  if (user && !loading) {
-    return <Navigate to="/" />;
-  }
+  // Check for redirect from email confirmation
+  useEffect(() => {
+    const handleEmailConfirmation = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const error = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
+      
+      // If there's an error in the URL hash, show it
+      if (error) {
+        toast.error(errorDescription || 'Error confirming email');
+        return;
+      }
+      
+      // Check for access token which indicates successful confirmation
+      if (hashParams.get('access_token')) {
+        toast.success('Email confirmed! You are now logged in.');
+        // Wait for auth state to update before redirecting
+        setTimeout(() => navigate('/'), 1000);
+      }
+    };
+    
+    handleEmailConfirmation();
+  }, [navigate]);
+  
+  // If user is already logged in, redirect to home or the page they were trying to access
+  useEffect(() => {
+    if (user && !loading) {
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    }
+  }, [user, loading, navigate, location]);
   
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +63,9 @@ const Auth = () => {
     
     try {
       await signIn(email, password);
-      // If successful, the auth listener will update the user state and trigger redirection
+      // Auth state listener will handle redirection
     } catch (error) {
-      // Error is already handled in the signIn function
+      // Error already handled in signIn function
     } finally {
       setIsSubmitting(false);
     }
@@ -58,9 +88,10 @@ const Auth = () => {
     
     try {
       await signUp(email, password);
-      // Remain on the page, since they might need to verify their email
+      // Now switch to signin tab so they can login after verifying
+      setActiveTab('signin');
     } catch (error) {
-      // Error is already handled in the signUp function
+      // Error already handled in signUp function
     } finally {
       setIsSubmitting(false);
     }
@@ -74,6 +105,10 @@ const Auth = () => {
     );
   }
   
+  if (user) {
+    return <Navigate to="/" />;
+  }
+  
   return (
     <div className="container flex items-center justify-center min-h-screen py-8">
       <div className="w-full max-w-md">
@@ -82,7 +117,7 @@ const Auth = () => {
           <p className="text-mechanic-gray">Track and manage your vehicle maintenance</p>
         </div>
         
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -178,7 +213,7 @@ const Auth = () => {
                   </div>
                 </CardContent>
                 
-                <CardFooter>
+                <CardFooter className="flex flex-col space-y-4">
                   <Button 
                     type="submit" 
                     className="w-full bg-mechanic-blue hover:bg-mechanic-blue/90"
@@ -186,6 +221,9 @@ const Auth = () => {
                   >
                     {isSubmitting ? 'Signing Up...' : 'Sign Up'}
                   </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    You'll receive a confirmation email to activate your account
+                  </p>
                 </CardFooter>
               </form>
             </Card>
