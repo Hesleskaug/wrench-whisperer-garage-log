@@ -9,7 +9,142 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      service_logs: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          mileage: number | null
+          notes: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          mileage?: number | null
+          notes?: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          mileage?: number | null
+          notes?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_tasks: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          images: string[] | null
+          service_log_id: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          service_log_id: string
+          title: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          service_log_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_tasks_service_log_id_fkey"
+            columns: ["service_log_id"]
+            isOneToOne: false
+            referencedRelation: "service_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          make: string
+          mileage: number | null
+          model: string
+          notes: string | null
+          user_id: string
+          vin: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          make: string
+          mileage?: number | null
+          model: string
+          notes?: string | null
+          user_id: string
+          vin?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          make?: string
+          mileage?: number | null
+          model?: string
+          notes?: string | null
+          user_id?: string
+          vin?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
