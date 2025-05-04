@@ -64,7 +64,13 @@ const AddVehicleForm = ({ open, onOpenChange, onAddVehicle }: AddVehicleFormProp
       // In a real app, you would call an API here
       const newVehicle: Vehicle = {
         id: Date.now().toString(), // Generate a temporary ID
-        ...data,
+        make: data.make,         // Ensure required property is explicitly assigned
+        model: data.model,       // Ensure required property is explicitly assigned
+        year: data.year,         // Ensure required property is explicitly assigned
+        mileage: data.mileage,   // Ensure required property is explicitly assigned
+        plate: data.plate,       // Optional property
+        vin: data.vin,           // Optional property
+        image: data.image || undefined,  // Handle empty string
       };
       
       // Adding a small delay to simulate an API call
