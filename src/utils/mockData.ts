@@ -32,6 +32,16 @@ export interface VehicleSpecs {
   batterySize: string;
   sparkPlugGap?: string;
   coolantType?: string;
+  // New specification fields
+  engineType?: string;
+  enginePower?: string;
+  tireSize?: string;
+  wheelSize?: string;
+  alternatorOutput?: string;
+  fuseBoxLocations?: string;
+  frontBrakeType?: string;
+  rearBrakeType?: string;
+  brakeFluidType?: string;
   additionalNotes?: string;
 }
 
@@ -93,6 +103,8 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
   {
     id: '1',
     vehicleId: '1',
+    engineType: '2.0L Turbocharged 4-cylinder',
+    enginePower: '250 hp @ 5500 rpm',
     wheelTorque: '140 Nm',
     oilCapacity: '5.2 L',
     oilType: '5W-30',
@@ -101,10 +113,20 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
     batterySize: '70AH 760A',
     sparkPlugGap: '0.7-0.8 mm',
     coolantType: 'Volvo Blue Coolant',
+    tireSize: '235/45R18',
+    wheelSize: '18 x 8J',
+    alternatorOutput: '180A',
+    fuseBoxLocations: 'Under dashboard and in engine compartment',
+    frontBrakeType: 'Ventilated discs, 345mm',
+    rearBrakeType: 'Solid discs, 320mm',
+    brakeFluidType: 'DOT 4',
+    additionalNotes: 'Timing belt replacement recommended at 120,000 km. Requires special tool for oil filter removal.',
   },
   {
     id: '2',
     vehicleId: '2',
+    engineType: '2.5L Dynamic Force 4-cylinder',
+    enginePower: '203 hp @ 6600 rpm',
     wheelTorque: '103 Nm',
     oilCapacity: '4.5 L',
     oilType: '0W-20',
@@ -113,5 +135,13 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
     batterySize: '60AH 590A',
     sparkPlugGap: '1.0-1.1 mm',
     coolantType: 'Toyota Super Long Life Coolant',
+    tireSize: '225/65R17',
+    wheelSize: '17 x 7J',
+    alternatorOutput: '150A',
+    fuseBoxLocations: 'Under dashboard and in engine compartment',
+    frontBrakeType: 'Ventilated discs, 320mm',
+    rearBrakeType: 'Solid discs, 281mm',
+    brakeFluidType: 'DOT 3',
+    additionalNotes: 'Uses Toyota maintenance-free timing chain. Hybrid model requires different service procedures.',
   }
 ];
