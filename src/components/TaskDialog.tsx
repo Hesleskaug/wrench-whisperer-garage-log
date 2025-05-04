@@ -387,7 +387,7 @@ const TaskDialog = ({ open, onOpenChange, onAddTask }: TaskDialogProps) => {
                 <Upload size={16} /> Upload
               </Button>
               <Button type="button" variant="outline" className="flex items-center gap-1">
-                <Link size={16} /> Add URL
+                <LinkIcon size={16} /> Add URL
               </Button>
             </div>
             <TaskImageUploader 
