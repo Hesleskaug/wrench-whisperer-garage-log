@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ImageIcon, PlusCircle, XCircle, CheckCircle, Upload } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageIcon, PlusCircle, XCircle, CheckCircle, Upload, Link, Receipt } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface TaskImageUploaderProps {
   images: string[];
@@ -10,6 +12,9 @@ interface TaskImageUploaderProps {
   onSetMainImage?: (imageUrl: string) => void;
   mainImage?: string;
   title?: string;
+  isReceiptMode?: boolean;
+  onReceiptDataChange?: (data: { note: string; websiteUrl: string }) => void;
+  initialReceiptData?: { note: string; websiteUrl: string };
 }
 
 const TaskImageUploader = ({ 
@@ -17,11 +22,16 @@ const TaskImageUploader = ({
   onImagesChange, 
   onSetMainImage, 
   mainImage,
-  title = "Images"
+  title = "Images",
+  isReceiptMode = false,
+  onReceiptDataChange,
+  initialReceiptData = { note: '', websiteUrl: '' }
 }: TaskImageUploaderProps) => {
   const [imageUrl, setImageUrl] = useState('');
   const [showInput, setShowInput] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  const [receiptNote, setReceiptNote] = useState(initialReceiptData.note);
+  const [websiteUrl, setWebsiteUrl] = useState(initialReceiptData.websiteUrl);
 
   const addImage = () => {
     if (!imageUrl.trim()) return;
@@ -60,9 +70,28 @@ const TaskImageUploader = ({
     setShowUploader(false);
   };
 
+  // Update receipt data whenever it changes
+  const updateReceiptData = () => {
+    if (onReceiptDataChange) {
+      onReceiptDataChange({
+        note: receiptNote,
+        websiteUrl: websiteUrl
+      });
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-medium text-gray-700">{title}</h4>
+      <h4 className="text-sm font-medium text-gray-700">
+        {isReceiptMode ? (
+          <div className="flex items-center gap-1">
+            <Receipt size={16} />
+            <span>Receipt {title}</span>
+          </div>
+        ) : (
+          title
+        )}
+      </h4>
       
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -163,6 +192,42 @@ const TaskImageUploader = ({
           >
             Cancel
           </Button>
+        </div>
+      )}
+
+      {/* Receipt additional fields */}
+      {isReceiptMode && (
+        <div className="space-y-3 pt-2 border-t border-gray-200 mt-3">
+          <div>
+            <Label htmlFor="receiptNote" className="text-sm">Receipt Note</Label>
+            <Textarea
+              id="receiptNote"
+              placeholder="Add notes about this receipt..."
+              value={receiptNote}
+              onChange={(e) => {
+                setReceiptNote(e.target.value);
+                updateReceiptData();
+              }}
+              className="resize-none mt-1"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="websiteUrl" className="text-sm flex items-center gap-1">
+              <Link size={14} />
+              Website URL
+            </Label>
+            <Input
+              id="websiteUrl"
+              placeholder="https://store.example.com/receipt/123"
+              value={websiteUrl}
+              onChange={(e) => {
+                setWebsiteUrl(e.target.value);
+                updateReceiptData();
+              }}
+              className="mt-1"
+            />
+          </div>
         </div>
       )}
     </div>

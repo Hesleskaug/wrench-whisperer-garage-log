@@ -1,4 +1,3 @@
-
 export interface Vehicle {
   id: string;
   make: string;
@@ -17,6 +16,9 @@ export interface ReceiptInfo {
   invoiceNumber?: string;
   date?: string;
   amount?: number;
+  images?: string[];
+  note?: string;
+  websiteUrl?: string;
 }
 
 export interface ServiceTask {

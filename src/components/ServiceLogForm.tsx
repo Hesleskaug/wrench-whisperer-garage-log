@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Receipt } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -66,7 +66,13 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
   const [receiptInvoice, setReceiptInvoice] = useState('');
   const [receiptDate, setReceiptDate] = useState('');
   const [receiptAmount, setReceiptAmount] = useState<number | undefined>(undefined);
+  const [receiptImages, setReceiptImages] = useState<string[]>([]);
+  const [receiptNote, setReceiptNote] = useState('');
+  const [receiptWebsiteUrl, setReceiptWebsiteUrl] = useState('');
   
+  // Add state for task images
+  const [taskImages, setTaskImages] = useState<string[]>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -117,6 +123,12 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
     }
   };
   
+  // Handle receipt data changes
+  const handleReceiptDataChange = (data: { note: string; websiteUrl: string }) => {
+    setReceiptNote(data.note);
+    setReceiptWebsiteUrl(data.websiteUrl);
+  };
+  
   const addTask = () => {
     const newTask: ServiceTask = {
       id: `task-${Date.now()}`,
@@ -130,6 +142,9 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
         invoiceNumber: receiptInvoice || undefined,
         date: receiptDate || undefined,
         amount: receiptAmount || undefined,
+        images: receiptImages.length > 0 ? [...receiptImages] : undefined,
+        note: receiptNote || undefined,
+        websiteUrl: receiptWebsiteUrl || undefined
       } : undefined,
       images: taskImages.length > 0 ? [...taskImages] : undefined,
     };
@@ -147,11 +162,11 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
     setReceiptInvoice('');
     setReceiptDate('');
     setReceiptAmount(undefined);
+    setReceiptImages([]);
+    setReceiptNote('');
+    setReceiptWebsiteUrl('');
     setTaskDialogOpen(false);
   };
-  
-  // Add state for task images
-  const [taskImages, setTaskImages] = useState<string[]>([]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -387,34 +402,72 @@ const ServiceLogForm = ({ open, onOpenChange, vehicle, onAddServiceLog }: Servic
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="receipt">Receipt Information</Label>
-              <Button variant="secondary" size="sm" onClick={() => setShowReceipt(!showReceipt)}>
-                {showReceipt ? 'Hide Receipt' : 'Add Receipt'}
-              </Button>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="receipt" className="flex items-center gap-1">
+                  <Receipt size={16} />
+                  Receipt Information
+                </Label>
+                <Button variant="secondary" size="sm" onClick={() => setShowReceipt(!showReceipt)}>
+                  {showReceipt ? 'Hide Receipt' : 'Add Receipt'}
+                </Button>
+              </div>
               
               {showReceipt && (
-                <div className="mt-2 space-y-2">
-                  <Input
-                    placeholder="Store Name"
-                    value={receiptStore}
-                    onChange={(e) => setReceiptStore(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Invoice Number"
-                    value={receiptInvoice}
-                    onChange={(e) => setReceiptInvoice(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Date"
-                    value={receiptDate}
-                    onChange={(e) => setReceiptDate(e.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Amount"
-                    value={receiptAmount || ''}
-                    onChange={(e) => setReceiptAmount(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                  />
+                <div className="mt-2 space-y-4 p-3 border rounded-md bg-gray-50">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="receiptStore">Store Name</Label>
+                      <Input
+                        id="receiptStore"
+                        placeholder="Store Name"
+                        value={receiptStore}
+                        onChange={(e) => setReceiptStore(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="receiptInvoice">Invoice Number</Label>
+                      <Input
+                        id="receiptInvoice"
+                        placeholder="Invoice Number"
+                        value={receiptInvoice}
+                        onChange={(e) => setReceiptInvoice(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="receiptDate">Date</Label>
+                      <Input
+                        id="receiptDate"
+                        placeholder="YYYY-MM-DD"
+                        value={receiptDate}
+                        onChange={(e) => setReceiptDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="receiptAmount">Amount</Label>
+                      <Input
+                        id="receiptAmount"
+                        type="number"
+                        placeholder="Amount"
+                        value={receiptAmount || ''}
+                        onChange={(e) => setReceiptAmount(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="receipt-images">Receipt Images</Label>
+                    <TaskImageUploader 
+                      images={receiptImages} 
+                      onImagesChange={setReceiptImages}
+                      title="Upload"
+                      isReceiptMode={true}
+                      onReceiptDataChange={handleReceiptDataChange}
+                      initialReceiptData={{ note: receiptNote, websiteUrl: receiptWebsiteUrl }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
