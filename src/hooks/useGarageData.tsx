@@ -193,6 +193,46 @@ export const useGarageData = () => {
       setIsSaving(false);
     }
   };
+  
+  // Function to sync all vehicles to the database
+  const syncAllVehicles = async () => {
+    if (vehicles.length === 0) return;
+    
+    setIsSaving(true);
+    setSyncError(null);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+      // Save each vehicle one by one
+      for (const vehicle of vehicles) {
+        try {
+          await saveVehicle(vehicle);
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to sync vehicle ${vehicle.id}:`, error);
+          errorCount++;
+        }
+      }
+      
+      setLastSyncAttempt(new Date());
+      
+      if (errorCount === 0) {
+        toast.success(`All ${successCount} vehicles synced successfully`);
+        setSyncError(null);
+      } else {
+        toast.warning(`Synced ${successCount} vehicles, ${errorCount} failed`);
+        setSyncError(`${errorCount} vehicles failed to sync`);
+      }
+    } catch (error) {
+      console.error('Sync all vehicles failed:', error);
+      setSyncError('Sync failed. Please try again later.');
+      toast.error('Failed to sync vehicles to database');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return {
     vehicles,
@@ -204,6 +244,7 @@ export const useGarageData = () => {
     handleAddVehicle,
     handleAddServiceLog,
     updateVehicleMileage,
-    retrySave
+    retrySave,
+    syncAllVehicles
   };
 };

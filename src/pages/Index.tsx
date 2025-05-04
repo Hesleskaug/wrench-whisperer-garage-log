@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
 import { Vehicle, ServiceLog } from "@/utils/mockData";
@@ -9,7 +9,7 @@ import GarageHeader from '@/components/GarageHeader';
 import VehicleList from '@/components/VehicleList';
 import { useGarageData } from '@/hooks/useGarageData';
 import { Button } from "@/components/ui/button";
-import { CloudUpload, AlertCircle, Save } from "lucide-react";
+import { CloudUpload, AlertCircle, Save, RefreshCw } from "lucide-react";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -23,7 +23,8 @@ const Index = () => {
     handleAddVehicle, 
     handleAddServiceLog,
     updateVehicleMileage,
-    retrySave
+    retrySave,
+    syncAllVehicles
   } = useGarageData();
   
   const [addVehicleDialogOpen, setAddVehicleDialogOpen] = useState(false);
@@ -77,6 +78,11 @@ const Index = () => {
     }
   };
 
+  // Function to sync all vehicles to the cloud
+  const handleSyncAllVehicles = () => {
+    syncAllVehicles();
+  };
+
   return (
     <div className="container py-8">
       <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
@@ -109,6 +115,17 @@ const Index = () => {
             {isSaving ? "Saving..." : syncError ? "Retry Save" : "Save Vehicle"}
           </Button>
         )}
+        
+        <Button 
+          variant="outline"
+          size="sm" 
+          onClick={handleSyncAllVehicles} 
+          disabled={isLoading || isSaving || vehicles.length === 0}
+          className="flex items-center gap-1"
+        >
+          <RefreshCw size={16} className={isSaving ? "animate-spin" : ""} />
+          Sync All Vehicles
+        </Button>
       </div>
       
       <VehicleList 

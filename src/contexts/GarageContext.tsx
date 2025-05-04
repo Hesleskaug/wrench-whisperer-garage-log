@@ -11,7 +11,7 @@ interface GarageContextType {
   createGarage: () => void;
   accessGarage: (id: string) => void;
   leaveGarage: () => void;
-  saveVehicle: (vehicle: Vehicle) => Promise<any>; // Changed from syncVehicles to saveVehicle
+  saveVehicle: (vehicle: Vehicle) => Promise<any>; 
   fetchVehicles: () => Promise<Vehicle[]>;
   syncServiceLogs: (serviceLogs: ServiceLog[]) => void;
   fetchServiceLogs: () => ServiceLog[];
@@ -33,6 +33,15 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     }
     setLoading(false);
   }, []);
+
+  // Use this effect to update RLS context whenever garage ID changes
+  useEffect(() => {
+    if (garageId) {
+      setCurrentGarageId(garageId).catch(error => {
+        console.error('Failed to set garage ID for RLS:', error);
+      });
+    }
+  }, [garageId]);
 
   const createGarage = () => {
     const newGarageId = uuidv4();
