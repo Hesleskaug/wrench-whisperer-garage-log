@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, Garage, Menu, X, Copy } from 'lucide-react';
+import { Settings, LogOut, Copy, Menu, X, Home } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Navigation = () => {
@@ -65,7 +65,7 @@ const Navigation = () => {
                   variant="outline" 
                   className="flex items-center gap-2"
                 >
-                  <Garage size={16} />
+                  <Home size={16} />
                   Your Garage
                 </Button>
               </DropdownMenuTrigger>
