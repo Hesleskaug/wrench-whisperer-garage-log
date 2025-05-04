@@ -86,24 +86,30 @@ export function GarageProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // First, save vehicles to localStorage as a reliable backup
+    localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(vehicles));
+    console.log('Vehicles saved to localStorage:', vehicles);
+    
     try {
-      // First, save vehicles to localStorage as a reliable backup
-      localStorage.setItem(`vehicles_${garageId}`, JSON.stringify(vehicles));
-      
-      // Then try to sync to Supabase if available
+      // Then try to sync to Supabase
       try {
         // First, delete existing vehicles for this garage
-        await supabase
+        const { error: deleteError } = await supabase
           .from('vehicles')
           .delete()
           .eq('garage_id', garageId);
+          
+        if (deleteError) {
+          console.error('Error deleting existing vehicles:', deleteError);
+          // Don't throw, continue with insert attempt
+        }
         
         // Then insert the new vehicles
         if (vehicles.length > 0) {
           // Generate a UUID for the user_id once
           const generatedUserId = uuidv4();
           
-          // Ensure all vehicles have valid UUIDs and format correctly
+          // Format vehicles for Supabase insert
           const vehiclesToInsert = vehicles.map(vehicle => ({
             id: vehicle.id && vehicle.id.includes('-') ? vehicle.id : uuidv4(),
             make: vehicle.make,
@@ -115,33 +121,32 @@ export function GarageProvider({ children }: { children: ReactNode }) {
             image_url: vehicle.image || null,
             notes: vehicle.notes || null,
             garage_id: garageId,
-            user_id: generatedUserId, // Use the generated UUID instead of 'anonymous'
+            user_id: generatedUserId,
           }));
           
-          const { error } = await supabase
-            .from('vehicles')
-            .insert(vehiclesToInsert);
-            
-          if (error) {
-            // Log the error but don't display it to the user since we already saved to localStorage
-            console.error('Error syncing vehicles to Supabase:', error);
-            // Don't display the error toast since we have a fallback
-            // toast.error('Failed to sync vehicles to cloud storage');
-          } else {
-            console.log('Vehicles synced to Supabase successfully');
+          // Insert in batches to avoid payload size issues
+          const batchSize = 5;
+          for (let i = 0; i < vehiclesToInsert.length; i += batchSize) {
+            const batch = vehiclesToInsert.slice(i, i + batchSize);
+            const { error: insertError } = await supabase
+              .from('vehicles')
+              .insert(batch);
+              
+            if (insertError) {
+              console.error('Error syncing vehicles batch to Supabase:', insertError);
+              // Continue with next batch
+            }
           }
+          
+          console.log('Vehicles synced to Supabase successfully');
         }
       } catch (error) {
         console.error('Error in Supabase sync operation:', error);
-        // No need to display an error toast since we have a localStorage backup
+        throw error; // Re-throw for the calling function to handle
       }
-      
-      // Confirm backup success to user
-      console.log('Vehicles saved to local storage successfully');
-      
     } catch (error) {
       console.error('Error in syncVehicles:', error);
-      toast.error('An error occurred while saving your vehicles');
+      throw error; // Re-throw for the calling function to handle
     }
   };
 
@@ -154,50 +159,36 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
     try {
       // Try to fetch from Supabase first
-      try {
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('garage_id', garageId);
-          
-        if (error) {
-          // Log the error but don't fail yet
-          console.error('Error fetching vehicles from Supabase:', error);
-        } else if (data && data.length > 0) {
-          // If Supabase fetch was successful, return the data
-          console.log('Vehicles loaded from Supabase:', data);
-          // Convert database records to Vehicle objects
-          return data.map(record => ({
-            id: record.id,
-            make: record.make,
-            model: record.model,
-            year: record.year,
-            mileage: record.mileage || 0,
-            plate: record.plate || '',
-            vin: record.vin || undefined,
-            image: record.image_url || undefined,
-            notes: record.notes || undefined,
-          }));
-        }
-      } catch (supabaseError) {
-        console.error('Supabase fetch error:', supabaseError);
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('garage_id', garageId);
+        
+      if (error) {
+        console.error('Error fetching vehicles from Supabase:', error);
+        throw error; // Let the calling function handle this
       }
       
-      // If Supabase fetch failed or returned no data, fall back to localStorage
-      const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
-      if (storedVehicles) {
-        const parsedVehicles = JSON.parse(storedVehicles);
-        console.log('Vehicles loaded from localStorage:', parsedVehicles);
-        return parsedVehicles;
+      if (data && data.length > 0) {
+        // Convert database records to Vehicle objects
+        return data.map(record => ({
+          id: record.id,
+          make: record.make,
+          model: record.model,
+          year: record.year,
+          mileage: record.mileage || 0,
+          plate: record.plate || '',
+          vin: record.vin || undefined,
+          image: record.image_url || undefined,
+          notes: record.notes || undefined,
+        }));
       }
       
-      // If no data in localStorage either, return empty array
-      console.log('No vehicles found in Supabase or localStorage');
+      // If no data in Supabase, return empty array so we can try localStorage
       return [];
     } catch (error) {
       console.error('Error in fetchVehicles:', error);
-      toast.error('An error occurred while loading your vehicles');
-      return [];
+      throw error; // Let the calling function handle this
     }
   };
 
