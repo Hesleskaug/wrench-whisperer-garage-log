@@ -158,12 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Fix the TypeScript error by using type assertion
+      // Fix the TypeScript error by explicitly typing the update object
+      const updates = {
+        username: data.username || null
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ 
-          username: data.username || null
-        } as any)
+        .update(updates)
         .eq('id', state.user.id);
       
       if (error) throw error;
