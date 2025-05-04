@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -83,7 +82,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           plate: vehicle.plate || '',
           vin: vehicle.vin || null,
           image_url: vehicle.image || null,
-          notes: vehicle.notes || null,
+          notes: vehicle.notes || null, // Now this will work as we've added it to the Vehicle interface
           garage_id: garageId,
           user_id: 'anonymous', // Using a placeholder since we don't have actual user authentication
         }));
