@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Clipboard, Camera, Upload, Link as LinkIcon, Copy, X, Plus } from "lucide-react";
+import { Clipboard, Camera, Upload, LinkIcon, Copy, X, Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import TaskImageUploader from './TaskImageUploader';
 import { toast } from "sonner";
@@ -71,6 +70,7 @@ interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddTask: (task: ServiceTask) => void;
+  editingTask?: ServiceTask;
 }
 
 const difficultyOptions = [
@@ -79,7 +79,7 @@ const difficultyOptions = [
   { value: "tough", label: "Tough", color: "bg-red-100 text-red-800" }
 ];
 
-const TaskDialog = ({ open, onOpenChange, onAddTask }: TaskDialogProps) => {
+const TaskDialog = ({ open, onOpenChange, onAddTask, editingTask }: TaskDialogProps) => {
   // Task details
   const [taskPreset, setTaskPreset] = useState("custom");
   const [taskDescription, setTaskDescription] = useState('');
@@ -114,6 +114,40 @@ const TaskDialog = ({ open, onOpenChange, onAddTask }: TaskDialogProps) => {
       }
     }
   }, [taskPreset]);
+  
+  // Initialize form with editing task data if provided
+  useEffect(() => {
+    if (editingTask) {
+      setTaskDescription(editingTask.description);
+      setTaskHowTo(editingTask.notes || '');
+      setTaskTools(editingTask.toolsRequired || []);
+      
+      if (editingTask.torqueSpec) {
+        const torqueParts = editingTask.torqueSpec.split(' ');
+        if (torqueParts.length === 2) {
+          setTaskTorque(torqueParts[0]);
+          setTorqueUnit(torqueParts[1]);
+        }
+      }
+      
+      setTaskImages(editingTask.images || []);
+      
+      if (editingTask.receipt) {
+        setReceiptStore(editingTask.receipt.store || '');
+        setReceiptImages(editingTask.receipt.images || []);
+        setReceiptNote(editingTask.receipt.note || '');
+        setReceiptWebsiteUrl(editingTask.receipt.websiteUrl || '');
+      }
+      
+      if (editingTask.difficulty) {
+        setDifficulty(editingTask.difficulty);
+      }
+      
+      if (editingTask.estimatedTime) {
+        setEstimatedTime(editingTask.estimatedTime);
+      }
+    }
+  }, [editingTask]);
   
   // Handle tool input
   const addTool = () => {
@@ -250,9 +284,9 @@ const TaskDialog = ({ open, onOpenChange, onAddTask }: TaskDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Service Task</DialogTitle>
+          <DialogTitle>{editingTask ? 'Edit Service Task' : 'Add Service Task'}</DialogTitle>
           <DialogDescription>
-            Add details about a specific task performed during this service.
+            {editingTask ? 'Edit details about this service task.' : 'Add details about a specific task performed during this service.'}
           </DialogDescription>
         </DialogHeader>
         
