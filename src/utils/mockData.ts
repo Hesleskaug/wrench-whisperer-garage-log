@@ -1,3 +1,4 @@
+
 export interface Vehicle {
   id: string;
   make: string;
@@ -53,6 +54,9 @@ export interface VehicleSpecs {
   // New specification fields
   engineType?: string;
   enginePower?: string;
+  engineSize?: string;
+  engineCode?: string;
+  transmission?: string;
   tireSize?: string;
   wheelSize?: string;
   alternatorOutput?: string;
@@ -260,6 +264,9 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
     vehicleId: '1',
     engineType: '2.0L Turbocharged 4-cylinder',
     enginePower: '250 hp @ 5500 rpm',
+    engineSize: '1969cc',
+    engineCode: 'B4204T23',
+    transmission: '8-speed Automatic',
     wheelTorque: '140 Nm',
     oilCapacity: '5.2 L',
     oilType: '5W-30',
@@ -282,6 +289,9 @@ export const mockVehicleSpecs: VehicleSpecs[] = [
     vehicleId: '2',
     engineType: '2.5L Dynamic Force 4-cylinder',
     enginePower: '203 hp @ 6600 rpm',
+    engineSize: '2487cc',
+    engineCode: 'A25A-FKS',
+    transmission: 'CVT Automatic',
     wheelTorque: '103 Nm',
     oilCapacity: '4.5 L',
     oilType: '0W-20',
