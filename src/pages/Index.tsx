@@ -9,7 +9,7 @@ import GarageHeader from '@/components/GarageHeader';
 import VehicleList from '@/components/VehicleList';
 import { useGarageData } from '@/hooks/useGarageData';
 import { Button } from "@/components/ui/button";
-import { CloudSync } from "lucide-react";
+import { CloudUpload } from "lucide-react";
 
 const Index = () => {
   const { t } = useLanguage();
@@ -62,7 +62,7 @@ const Index = () => {
           disabled={isLoading || isSyncing}
           className="flex items-center gap-1"
         >
-          <CloudSync size={16} className={isSyncing ? "animate-spin" : ""} />
+          <CloudUpload size={16} className={isSyncing ? "animate-spin" : ""} />
           {isSyncing ? "Syncing..." : "Sync to Cloud"}
         </Button>
       </div>
