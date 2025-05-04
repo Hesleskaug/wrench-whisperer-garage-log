@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Vehicle } from '@/utils/mockData';
 import { CarFront, Wrench } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import NorwegianPlate from './NorwegianPlate';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -55,9 +56,7 @@ const VehicleCard = ({ vehicle, onServiceLog }: VehicleCardProps) => {
             </h3>
             <p className="text-mechanic-gray">{vehicle.year}</p>
           </div>
-          <div className="bg-mechanic-silver px-3 py-1 rounded-full text-xs font-medium text-mechanic-dark">
-            {vehicle.plate || "No Plate"}
-          </div>
+          <NorwegianPlate plate={vehicle.plate} />
         </div>
         <p className="mt-2 text-sm text-mechanic-gray/80">
           Current Mileage: <span className="font-semibold">{vehicle.mileage.toLocaleString()} km</span>

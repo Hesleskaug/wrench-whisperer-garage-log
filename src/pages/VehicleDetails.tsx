@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Vehicle, ServiceLog, VehicleSpecs, mockVehicleSpecs } from "@/utils/moc
 import { toast } from "sonner";
 import { useGarage } from '@/contexts/GarageContext';
 import { Badge } from "@/components/ui/badge";
+import NorwegianPlate from '@/components/NorwegianPlate';
 
 const VehicleDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -366,9 +368,9 @@ const VehicleDetails = () => {
               )}
               
               <div className="mt-4 space-y-3">
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between">
                   <span className="text-mechanic-gray">Plate Number</span>
-                  <span className="font-medium">{vehicle.plate || "N/A"}</span>
+                  <NorwegianPlate plate={vehicle.plate} className="ml-2" />
                 </div>
                 <div className="flex justify-between">
                   <span className="text-mechanic-gray">VIN</span>
