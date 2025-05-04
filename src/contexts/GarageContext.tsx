@@ -35,7 +35,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Utility function to validate UUID format
-  const isValidUUID = (uuid: string) => {
+  const isValidUUID = (uuid: string | null | undefined): boolean => {
+    if (!uuid) return false;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   };
@@ -234,6 +235,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           vin: record.vin || undefined,
           image: record.image_url || undefined,
           notes: record.notes || undefined,
+          fuelType: record.fuel_type || 'Unknown', // Added default value
         }));
         
         return vehicles;

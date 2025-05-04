@@ -16,9 +16,15 @@ export const useGarageData = () => {
   const [pendingSaves, setPendingSaves] = useState<string[]>([]);
 
   // Utility function to validate UUID format
-  const isValidUUID = (uuid: string) => {
+  const isValidUUID = (uuid: string | null | undefined): boolean => {
+    if (!uuid) return false;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
+  };
+
+  // Generate valid UUID if needed
+  const ensureValidUUID = (id?: string): string => {
+    return (id && isValidUUID(id)) ? id : uuidv4();
   };
 
   // Load vehicles and service logs when garage ID changes
@@ -45,7 +51,7 @@ export const useGarageData = () => {
           // Ensure all mock vehicles have valid UUIDs
           const mockVehiclesWithValidIds = defaultMockVehicles.map(vehicle => ({
             ...vehicle,
-            id: isValidUUID(vehicle.id) ? vehicle.id : uuidv4()
+            id: ensureValidUUID(vehicle.id)
           }));
           
           setVehicles(mockVehiclesWithValidIds);
@@ -97,7 +103,7 @@ export const useGarageData = () => {
     // Ensure the vehicle has a valid UUID
     const vehicleWithValidId = {
       ...vehicle,
-      id: isValidUUID(vehicle.id || '') ? vehicle.id : uuidv4()
+      id: ensureValidUUID(vehicle.id)
     };
     
     setIsSaving(true);
@@ -237,7 +243,7 @@ export const useGarageData = () => {
           // Ensure each vehicle has a valid UUID
           const vehicleWithValidId = {
             ...vehicle,
-            id: isValidUUID(vehicle.id || '') ? vehicle.id : uuidv4()
+            id: ensureValidUUID(vehicle.id)
           };
           
           await saveVehicle(vehicleWithValidId);
