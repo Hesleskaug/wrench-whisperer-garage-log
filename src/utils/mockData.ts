@@ -1,3 +1,4 @@
+
 export interface Vehicle {
   id: string;
   make: string;
@@ -7,6 +8,7 @@ export interface Vehicle {
   plate?: string;
   mileage: number;
   image?: string;
+  bodyType?: string; // Added bodyType property
   specs?: VehicleSpecs; // Add specs directly to the vehicle
 }
 
@@ -75,6 +77,7 @@ export const mockVehicles: Vehicle[] = [
     year: 2018,
     plate: 'AB12345',
     mileage: 78500,
+    bodyType: 'Station Wagon',
     image: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2025&q=80'
   },
   {
@@ -84,6 +87,7 @@ export const mockVehicles: Vehicle[] = [
     year: 2020,
     plate: 'CD67890',
     mileage: 45200,
+    bodyType: 'SUV',
     image: 'https://images.unsplash.com/photo-1581540222194-0def2dda95b8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1887&q=80'
   }
 ];
