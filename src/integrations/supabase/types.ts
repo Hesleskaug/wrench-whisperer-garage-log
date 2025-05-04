@@ -109,36 +109,42 @@ export type Database = {
       vehicles: {
         Row: {
           created_at: string
+          garage_id: string | null
           id: string
           image_url: string | null
           make: string
           mileage: number | null
           model: string
           notes: string | null
+          plate: string | null
           user_id: string
           vin: string | null
           year: number
         }
         Insert: {
           created_at?: string
+          garage_id?: string | null
           id?: string
           image_url?: string | null
           make: string
           mileage?: number | null
           model: string
           notes?: string | null
+          plate?: string | null
           user_id: string
           vin?: string | null
           year: number
         }
         Update: {
           created_at?: string
+          garage_id?: string | null
           id?: string
           image_url?: string | null
           make?: string
           mileage?: number | null
           model?: string
           notes?: string | null
+          plate?: string | null
           user_id?: string
           vin?: string | null
           year?: number

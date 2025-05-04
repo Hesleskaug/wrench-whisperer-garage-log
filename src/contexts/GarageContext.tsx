@@ -85,7 +85,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           image_url: vehicle.image || null,
           notes: vehicle.notes || null,
           garage_id: garageId,
-          // Add any other necessary fields
+          user_id: 'anonymous', // Using a placeholder since we don't have actual user authentication
         }));
         
         const { error } = await supabase
@@ -136,7 +136,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           vin: record.vin || undefined,
           image: record.image_url || undefined,
           notes: record.notes || undefined,
-          garage_id: record.garage_id,
           // Map any other necessary fields
         }));
       }
