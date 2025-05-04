@@ -24,6 +24,7 @@ export interface ServiceTask {
   toolsRequired?: string[];
   torqueSpec?: string;
   receipt?: ReceiptInfo;
+  images?: string[];
 }
 
 export interface ServiceLog {
