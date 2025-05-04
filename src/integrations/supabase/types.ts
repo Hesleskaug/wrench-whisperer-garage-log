@@ -109,42 +109,36 @@ export type Database = {
       vehicles: {
         Row: {
           created_at: string
-          garage_id: string | null
           id: string
           image_url: string | null
           make: string
           mileage: number | null
           model: string
           notes: string | null
-          plate: string | null
           user_id: string
           vin: string | null
           year: number
         }
         Insert: {
           created_at?: string
-          garage_id?: string | null
           id?: string
           image_url?: string | null
           make: string
           mileage?: number | null
           model: string
           notes?: string | null
-          plate?: string | null
           user_id: string
           vin?: string | null
           year: number
         }
         Update: {
           created_at?: string
-          garage_id?: string | null
           id?: string
           image_url?: string | null
           make?: string
           mileage?: number | null
           model?: string
           notes?: string | null
-          plate?: string | null
           user_id?: string
           vin?: string | null
           year?: number
@@ -156,10 +150,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      set_current_garage_id: {
-        Args: { garage_id: string }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

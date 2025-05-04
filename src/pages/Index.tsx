@@ -1,48 +1,113 @@
 import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import VehicleCard from "@/components/VehicleCard";
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
-import { Vehicle, ServiceLog } from "@/utils/mockData";
+import { Vehicle, ServiceLog, mockVehicles as defaultMockVehicles, mockServiceLogs as defaultMockServiceLogs } from "@/utils/mockData";
 import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
+import { useGarage } from '@/contexts/GarageContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import GarageHeader from '@/components/GarageHeader';
-import VehicleList from '@/components/VehicleList';
-import { useGarageData } from '@/hooks/useGarageData';
-import { Button } from "@/components/ui/button";
-import { CloudUpload, AlertCircle, Save, RefreshCw, AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { garageId, syncVehicles, fetchVehicles } = useGarage();
   const { t } = useLanguage();
-  const { 
-    vehicles, 
-    serviceLogs, 
-    isLoading, 
-    isSaving,
-    syncError,
-    pendingSaves,
-    lastSyncAttempt,
-    handleAddVehicle, 
-    handleAddServiceLog,
-    updateVehicleMileage,
-    retrySave,
-    syncAllVehicles
-  } = useGarageData();
-  
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [serviceLogs, setServiceLogs] = useState<ServiceLog[]>([]);
   const [addVehicleDialogOpen, setAddVehicleDialogOpen] = useState(false);
   const [serviceLogDialogOpen, setServiceLogDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const handleServiceLog = (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    setServiceLogDialogOpen(true);
+  // Load vehicles from Supabase based on garage ID
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (!garageId) return;
+      
+      setIsLoading(true);
+      try {
+        // Try to fetch vehicles from Supabase
+        const supabaseVehicles = await fetchVehicles();
+        
+        if (supabaseVehicles.length > 0) {
+          setVehicles(supabaseVehicles);
+          console.log('Vehicles loaded from Supabase:', supabaseVehicles);
+        } else {
+          // If no vehicles in Supabase, check localStorage as fallback
+          const storedVehicles = localStorage.getItem(`vehicles_${garageId}`);
+          
+          if (storedVehicles) {
+            const parsedVehicles = JSON.parse(storedVehicles);
+            setVehicles(parsedVehicles);
+            console.log('Vehicles loaded from localStorage:', parsedVehicles);
+            
+            // Sync localStorage vehicles to Supabase for future cross-device access
+            await syncVehicles(parsedVehicles);
+          } else {
+            // If no vehicles anywhere, use mock data
+            setVehicles(defaultMockVehicles);
+            console.log('Using default mock vehicles');
+            
+            // Sync default vehicles to Supabase
+            await syncVehicles(defaultMockVehicles);
+          }
+        }
+        
+        // Load service logs from localStorage (we'll keep this in localStorage for now)
+        const storedServiceLogs = localStorage.getItem(`serviceLogs_${garageId}`);
+        setServiceLogs(storedServiceLogs ? JSON.parse(storedServiceLogs) : defaultMockServiceLogs);
+      } catch (error) {
+        console.error('Error loading vehicles:', error);
+        toast.error('Failed to load your vehicles');
+        
+        // Fallback to mock data
+        setVehicles(defaultMockVehicles);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadVehicles();
+  }, [garageId, fetchVehicles, syncVehicles]);
+  
+  // Save service logs to localStorage when they change
+  useEffect(() => {
+    if (garageId) {
+      localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(serviceLogs));
+    }
+  }, [serviceLogs, garageId]);
+
+  const handleAddVehicle = async (vehicle: Vehicle) => {
+    const updatedVehicles = [...vehicles, vehicle];
+    setVehicles(updatedVehicles);
+    
+    // Sync to Supabase
+    if (garageId) {
+      await syncVehicles(updatedVehicles);
+    }
   };
 
-  const handleAddServiceLogWithMileageUpdate = (serviceLog: ServiceLog) => {
-    handleAddServiceLog(serviceLog);
+  const handleAddServiceLog = (serviceLog: ServiceLog) => {
+    setServiceLogs(prev => [...prev, serviceLog]);
     
     // Update vehicle mileage if the service log has a higher mileage
     if (selectedVehicle && serviceLog.mileage > selectedVehicle.mileage) {
-      updateVehicleMileage(selectedVehicle.id, serviceLog.mileage);
+      const updatedVehicles = vehicles.map(v =>
+        v.id === selectedVehicle.id
+          ? { ...v, mileage: serviceLog.mileage }
+          : v
+      );
+      
+      setVehicles(updatedVehicles);
+      
+      // Sync updated vehicles to Supabase
+      if (garageId) {
+        syncVehicles(updatedVehicles).catch(error => {
+          console.error('Failed to sync updated mileage to Supabase:', error);
+        });
+      }
       
       // Update the selected vehicle reference
       setSelectedVehicle({
@@ -54,102 +119,67 @@ const Index = () => {
     }
   };
 
-  // Format the last sync time for display
-  const formatLastSync = () => {
-    if (!lastSyncAttempt) return null;
-    
-    // If less than 1 minute ago, show 'Just now'
-    const diffMs = new Date().getTime() - lastSyncAttempt.getTime();
-    if (diffMs < 60000) return 'Just now';
-    
-    // For times less than an hour ago, show minutes
-    if (diffMs < 3600000) {
-      const mins = Math.floor(diffMs / 60000);
-      return `${mins}m ago`;
-    }
-    
-    // Otherwise show the time
-    return lastSyncAttempt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleServiceLog = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setServiceLogDialogOpen(true);
   };
 
-  // Define handleRetry function using the existing retrySave function
-  const handleRetry = () => {
-    if (selectedVehicle) {
-      retrySave(selectedVehicle.id);
-    } else {
-      // If no vehicle is selected, sync all vehicles instead
-      syncAllVehicles();
-    }
-  };
-
-  // Check if the selected vehicle needs saving
-  const isSelectedVehiclePendingSave = selectedVehicle && pendingSaves?.includes(selectedVehicle.id);
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-mechanic-blue">{t('yourGarage')}</h1>
+            <p className="text-mechanic-gray">{t('trackMaintenance')}</p>
+          </div>
+        </div>
+        <div className="text-center p-12 bg-mechanic-silver/20 rounded-lg">
+          <p className="text-mechanic-gray animate-pulse">Loading your garage...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-8">
-      <GarageHeader onAddVehicle={() => setAddVehicleDialogOpen(true)} />
-      
-      {syncError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {syncError} 
-            {pendingSaves && pendingSaves.length > 0 && (
-              <span className="block mt-1">
-                {pendingSaves.length} {pendingSaves.length === 1 ? 'vehicle' : 'vehicles'} pending sync
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <div className="mb-4 flex items-center justify-end">
-        <div className="flex items-center mr-2">
-          <div className="text-xs text-muted-foreground">
-            {lastSyncAttempt && !isSaving && (
-              <span>Last database update: {formatLastSync()}</span>
-            )}
-            {pendingSaves && pendingSaves.length > 0 && (
-              <span className="ml-2 text-amber-500 flex items-center">
-                <AlertTriangle size={12} className="mr-1" /> 
-                {pendingSaves.length} unsaved {pendingSaves.length === 1 ? 'vehicle' : 'vehicles'}
-              </span>
-            )}
-          </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-mechanic-blue">{t('yourGarage')}</h1>
+          <p className="text-mechanic-gray">{t('trackMaintenance')}</p>
         </div>
-        
-        {(selectedVehicle || pendingSaves?.length > 0) && (
-          <Button 
-            variant={syncError ? "destructive" : "outline"}
-            size="sm" 
-            onClick={() => handleRetry()}
-            disabled={isLoading || isSaving}
-            className="flex items-center gap-1 mr-2"
-          >
-            <Save size={16} className={isSaving ? "animate-spin" : ""} />
-            {isSaving ? "Saving..." : (isSelectedVehiclePendingSave ? "Save Vehicle" : "Retry Save")}
-          </Button>
-        )}
-        
         <Button 
-          variant="outline"
-          size="sm" 
-          onClick={() => syncAllVehicles()}
-          disabled={isLoading || isSaving || vehicles.length === 0}
-          className="flex items-center gap-1"
+          onClick={() => setAddVehicleDialogOpen(true)}
+          className="bg-mechanic-blue hover:bg-mechanic-blue/90"
         >
-          <RefreshCw size={16} className={isSaving ? "animate-spin" : ""} />
-          Save All Vehicles
+          <Plus size={16} className="mr-1" /> {t('addVehicle')}
         </Button>
       </div>
       
-      <VehicleList 
-        vehicles={vehicles}
-        onAddVehicle={() => setAddVehicleDialogOpen(true)}
-        onServiceLog={handleServiceLog}
-        isLoading={isLoading}
-        pendingSaves={pendingSaves}
-      />
+      {vehicles.length === 0 ? (
+        <div className="text-center p-12 bg-mechanic-silver/20 rounded-lg">
+          <h2 className="text-xl font-semibold mb-2">{t('welcomeGarage')}</h2>
+          <p className="text-mechanic-gray mb-6">
+            {t('addFirstVehicle')}
+          </p>
+          <Button 
+            onClick={() => setAddVehicleDialogOpen(true)}
+            className="bg-mechanic-blue hover:bg-mechanic-blue/90"
+          >
+            <Plus size={16} className="mr-1" /> {t('addVehicle')}
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {vehicles.map(vehicle => (
+            <VehicleCard 
+              key={vehicle.id} 
+              vehicle={vehicle} 
+              onServiceLog={() => handleServiceLog(vehicle)} 
+            />
+          ))}
+        </div>
+      )}
       
       <AddVehicleForm
         open={addVehicleDialogOpen}
@@ -161,7 +191,7 @@ const Index = () => {
         open={serviceLogDialogOpen}
         onOpenChange={setServiceLogDialogOpen}
         vehicle={selectedVehicle}
-        onAddServiceLog={handleAddServiceLogWithMileageUpdate}
+        onAddServiceLog={handleAddServiceLog}
       />
     </div>
   );

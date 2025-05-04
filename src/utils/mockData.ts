@@ -9,8 +9,7 @@ export interface Vehicle {
   image?: string;
   bodyType?: string; 
   specs?: VehicleSpecs;
-  fuelType?: string;
-  notes?: string; // Add notes property to the Vehicle interface
+  fuelType?: string; // Add fuelType directly to Vehicle for accessibility
 }
 
 export interface ReceiptInfo {

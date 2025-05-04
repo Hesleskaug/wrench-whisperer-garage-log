@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
-import { Vehicle, ServiceLog } from '@/utils/mockData';
+import { Vehicle } from '@/utils/mockData';
 
 interface GarageContextType {
   garageId: string | null;
@@ -11,10 +11,8 @@ interface GarageContextType {
   createGarage: () => void;
   accessGarage: (id: string) => void;
   leaveGarage: () => void;
-  saveVehicle: (vehicle: Vehicle) => Promise<any>; 
+  syncVehicles: (vehicles: Vehicle[]) => Promise<void>;
   fetchVehicles: () => Promise<Vehicle[]>;
-  syncServiceLogs: (serviceLogs: ServiceLog[]) => void;
-  fetchServiceLogs: () => ServiceLog[];
 }
 
 const GarageContext = createContext<GarageContextType | undefined>(undefined);
@@ -34,43 +32,6 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // Utility function to validate UUID format
-  const isValidUUID = (uuid: string | null | undefined): boolean => {
-    if (!uuid) return false;
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
-  };
-
-  // Use this effect to update RLS context whenever garage ID changes
-  useEffect(() => {
-    const updateRlsContext = async () => {
-      if (!garageId) return;
-      
-      try {
-        console.log('Setting RLS context for garage ID:', garageId);
-        // Make sure we're setting a valid UUID format
-        if (!isValidUUID(garageId)) {
-          console.error('Invalid garage ID format for RLS context:', garageId);
-          return;
-        }
-
-        const { error } = await supabase.rpc('set_current_garage_id', { 
-          garage_id: garageId 
-        });
-        
-        if (error) {
-          console.error('Failed to set garage ID for RLS:', error);
-        } else {
-          console.log('Successfully set garage ID for RLS');
-        }
-      } catch (error) {
-        console.error('Error setting garage ID for RLS:', error);
-      }
-    };
-    
-    updateRlsContext();
-  }, [garageId]);
-
   const createGarage = () => {
     const newGarageId = uuidv4();
     localStorage.setItem(STORAGE_KEY, newGarageId);
@@ -80,7 +41,7 @@ export function GarageProvider({ children }: { children: ReactNode }) {
 
   const accessGarage = (id: string) => {
     // Basic validation for UUID format
-    if (!isValidUUID(id)) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       toast.error('Invalid garage ID format');
       return;
     }
@@ -96,99 +57,51 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     toast.success('Exited garage successfully');
   };
 
-  // Function to sync service logs to localStorage
-  const syncServiceLogs = (serviceLogs: ServiceLog[]) => {
+  // Function to save vehicles to Supabase
+  const syncVehicles = async (vehicles: Vehicle[]) => {
     if (!garageId) {
       console.error('No garage ID available');
       return;
     }
-    localStorage.setItem(`serviceLogs_${garageId}`, JSON.stringify(serviceLogs));
-  };
-
-  // Function to fetch service logs from localStorage
-  const fetchServiceLogs = (): ServiceLog[] => {
-    if (!garageId) {
-      console.error('No garage ID available');
-      return [];
-    }
-    
-    const storedLogs = localStorage.getItem(`serviceLogs_${garageId}`);
-    return storedLogs ? JSON.parse(storedLogs) : [];
-  };
-
-  // Function to save a single vehicle directly to the database
-  const saveVehicle = async (vehicle: Vehicle) => {
-    if (!garageId) {
-      console.error('No garage ID available');
-      return Promise.reject(new Error('No garage ID available'));
-    }
-
-    if (!isValidUUID(garageId)) {
-      console.error('Invalid garage ID format:', garageId);
-      return Promise.reject(new Error('Invalid garage ID format'));
-    }
 
     try {
-      // First ensure the RLS context is set immediately before operations
-      console.log('Setting current garage ID before saving vehicle:', garageId);
-      await supabase.rpc('set_current_garage_id', { garage_id: garageId });
-      
-      // Prepare vehicle data for insert/update
-      const vehicleId = vehicle.id && isValidUUID(vehicle.id) ? vehicle.id : uuidv4();
-      
-      const vehicleData = {
-        id: vehicleId,
-        make: vehicle.make,
-        model: vehicle.model,
-        year: vehicle.year,
-        mileage: vehicle.mileage || 0,
-        plate: vehicle.plate || '',
-        vin: vehicle.vin || null,
-        image_url: vehicle.image || null,
-        notes: vehicle.notes || null,
-        garage_id: garageId,
-        user_id: garageId, // Using garageId as user_id for consistency
-      };
-
-      console.log('Saving vehicle with data:', vehicleData);
-      
-      // Use insertOrUpdate for more reliable operation
-      const { data, error } = await supabase
+      // First, delete existing vehicles for this garage
+      await supabase
         .from('vehicles')
-        .upsert(vehicleData, { onConflict: 'id' })
-        .select('*')
-        .single();
+        .delete()
+        .eq('garage_id', garageId);
       
-      if (error) {
-        console.error('Error saving vehicle to database:', error);
+      // Then insert the new vehicles
+      if (vehicles.length > 0) {
+        // Convert vehicle objects to match the database schema
+        const vehiclesToInsert = vehicles.map(vehicle => ({
+          id: vehicle.id,
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year,
+          mileage: vehicle.mileage || 0,
+          plate: vehicle.plate || '',
+          vin: vehicle.vin || null,
+          image_url: vehicle.image || null,
+          notes: vehicle.notes || null,
+          garage_id: garageId,
+          // Add any other necessary fields
+        }));
         
-        // Fallback to direct insert if upsert fails (sometimes happens with RLS issues)
-        console.log('Attempting direct insert as fallback...');
-        const insertResult = await supabase
+        const { error } = await supabase
           .from('vehicles')
-          .insert(vehicleData)
-          .select('*')
-          .single();
+          .insert(vehiclesToInsert);
           
-        if (insertResult.error) {
-          console.error('Fallback insert also failed:', insertResult.error);
-          throw new Error(`Database error: ${insertResult.error.message}`);
+        if (error) {
+          console.error('Error syncing vehicles to Supabase:', error);
+          toast.error('Failed to sync vehicles to cloud storage');
+        } else {
+          console.log('Vehicles synced to Supabase successfully');
         }
-        
-        console.log('Fallback insert succeeded:', insertResult.data);
-        return insertResult.data;
       }
-      
-      console.log('Successfully saved vehicle to database:', data);
-      return data;
-    } catch (error: any) {
-      console.error('Error in saveVehicle:', error);
-      
-      // Provide more specific error message
-      const errorMessage = error.message || 'Unknown database error';
-      toast.error(`Failed to save vehicle: ${errorMessage}`);
-      
-      throw error;
+    } catch (error) {
+      console.error('Error in syncVehicles:', error);
+      toast.error('An error occurred while syncing vehicles');
     }
   };
 
@@ -196,21 +109,10 @@ export function GarageProvider({ children }: { children: ReactNode }) {
   const fetchVehicles = async (): Promise<Vehicle[]> => {
     if (!garageId) {
       console.error('No garage ID available');
-      return Promise.resolve([]);
-    }
-
-    if (!isValidUUID(garageId)) {
-      console.error('Invalid garage ID format:', garageId);
-      return Promise.resolve([]);
+      return [];
     }
 
     try {
-      // Set the current garage ID for RLS
-      console.log('Setting current garage ID before fetching vehicles:', garageId);
-      await supabase.rpc('set_current_garage_id', { garage_id: garageId });
-      
-      // Try to fetch from Supabase with RLS context set
-      console.log('Fetching vehicles with garage_id:', garageId);
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
@@ -218,14 +120,13 @@ export function GarageProvider({ children }: { children: ReactNode }) {
         
       if (error) {
         console.error('Error fetching vehicles from Supabase:', error);
-        throw error;
+        toast.error('Failed to fetch vehicles from cloud storage');
+        return [];
       }
       
       if (data && data.length > 0) {
-        console.log('Retrieved vehicles from Supabase:', data);
-        
         // Convert database records to Vehicle objects
-        const vehicles = data.map(record => ({
+        return data.map(record => ({
           id: record.id,
           make: record.make,
           model: record.model,
@@ -235,18 +136,16 @@ export function GarageProvider({ children }: { children: ReactNode }) {
           vin: record.vin || undefined,
           image: record.image_url || undefined,
           notes: record.notes || undefined,
-          fuelType: record.fuel_type || 'Unknown', // Added default value
+          garage_id: record.garage_id,
+          // Map any other necessary fields
         }));
-        
-        return vehicles;
       }
       
-      // If no data in Supabase, return empty array
-      console.log('No vehicles found in database');
       return [];
     } catch (error) {
       console.error('Error in fetchVehicles:', error);
-      throw error;
+      toast.error('An error occurred while fetching vehicles');
+      return [];
     }
   };
 
@@ -256,10 +155,8 @@ export function GarageProvider({ children }: { children: ReactNode }) {
     createGarage,
     accessGarage,
     leaveGarage,
-    saveVehicle,
-    fetchVehicles,
-    syncServiceLogs,
-    fetchServiceLogs
+    syncVehicles,
+    fetchVehicles
   };
 
   return <GarageContext.Provider value={value}>{children}</GarageContext.Provider>;
