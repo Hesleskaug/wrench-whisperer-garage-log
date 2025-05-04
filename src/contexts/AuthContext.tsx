@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,13 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Fix TypeScript error by using explicit type casting and update
-      // We specify exactly which field to update to avoid type issues
+      // Use a properly typed update object with explicit username field
       const { error } = await supabase
         .from('profiles')
-        .update({
-          username: data.username
-        } as any)
+        .update({ 
+          username: data.username || null
+        })
         .eq('id', state.user.id);
       
       if (error) throw error;
