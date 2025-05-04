@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Available languages
@@ -121,6 +122,18 @@ export const translations = {
     counterNamePlaceholder: "e.g. Engine Hours",
     add: "Add",
     pleaseEnterName: "Please enter a name",
+    images: "Images",
+    parts: "Parts",
+    noTasks: "No tasks",
+    torque: "Torque",
+    toolsRequired: "Tools Required",
+    receiptInformation: "Receipt Information",
+    invoice: "Invoice",
+    amount: "Amount",
+    addImageUrl: "Add Image URL",
+    printHistory: "Print History",
+    noServiceRecords: "No Service Records",
+    startLogging: "Start logging services to see history here",
   },
   no: {
     garage: "Garasje",
@@ -228,6 +241,18 @@ export const translations = {
     counterNamePlaceholder: "f.eks. Motortimer",
     add: "Legg til",
     pleaseEnterName: "Vennligst skriv inn et navn",
+    images: "Bilder",
+    parts: "Deler",
+    noTasks: "Ingen oppgaver",
+    torque: "Moment",
+    toolsRequired: "Nødvendige verktøy",
+    receiptInformation: "Kvitteringsinformasjon",
+    invoice: "Faktura",
+    amount: "Beløp",
+    addImageUrl: "Legg til bildeadresse",
+    printHistory: "Skriv ut historikk",
+    noServiceRecords: "Ingen serviceoppføringer",
+    startLogging: "Begynn å logge service for å se historikk her",
   }
 };
 
@@ -277,4 +302,5 @@ export const useLanguage = (): LanguageContextType => {
   return context;
 };
 
-export { useLanguage, LanguageProvider };
+// REMOVED the redundant export line that was causing the conflict:
+// export { useLanguage, LanguageProvider };
