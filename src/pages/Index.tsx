@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AddVehicleForm from "@/components/AddVehicleForm";
 import ServiceLogForm from "@/components/ServiceLogForm";
@@ -123,7 +122,7 @@ const Index = () => {
           <Button 
             variant={syncError ? "destructive" : "outline"}
             size="sm" 
-            onClick={handleRetry} 
+            onClick={() => handleRetry()}
             disabled={isLoading || isSaving}
             className="flex items-center gap-1 mr-2"
           >
@@ -135,7 +134,7 @@ const Index = () => {
         <Button 
           variant="outline"
           size="sm" 
-          onClick={syncAllVehicles} 
+          onClick={() => syncAllVehicles()}
           disabled={isLoading || isSaving || vehicles.length === 0}
           className="flex items-center gap-1"
         >
