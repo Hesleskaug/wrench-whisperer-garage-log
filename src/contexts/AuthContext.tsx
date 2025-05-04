@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -148,12 +149,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Get a strongly typed reference to the profiles table
-      const profilesRef = supabase.from('profiles');
-      
-      // Use the typed reference for the update operation
-      const { error } = await profilesRef
-        .update({ username: data.username })
+      // Fix TypeScript error by using explicit type casting and update
+      // We specify exactly which field to update to avoid type issues
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: data.username
+        } as any)
         .eq('id', state.user.id);
       
       if (error) throw error;
